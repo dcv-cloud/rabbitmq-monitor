@@ -1,0 +1,4 @@
+# Don't track these files
+*.pyc
+rabbitmq-alert.log
+rabbitmq-alert.log*
