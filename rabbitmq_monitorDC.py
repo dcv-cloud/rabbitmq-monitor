@@ -394,8 +394,8 @@ def monitorrabbit(host, port,DC,reports=False):
 def main(): 
     log = logger.Logger()
     log.info("Starting application...")
-    #location=os.environ['LOCATION']
-    location="dcloud.rtp.sharedservices"
+    location=os.environ['LOCATION']
+    #location="dcloud.rtp.sharedservices"
     log.info("Location recieved from controller!!")
     print(location)
     opt_resolver = optionsresolver.OptionsResolver(log)
