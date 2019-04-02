@@ -309,24 +309,17 @@ def monitorrabbit(host, port,DC,reports=False):
     
     if DC == 'RTP' and host == '198.19.254.159' :
         options = opt_resolver.setup_options_RTP()
-    if DC == 'RTP' and host == 'dcv-automation-amqp.svpod.dc-02.com' :
-        options = opt_resolver.setup_options_SNG()
-    if DC == 'RTP' and host == 'dcv-automation-amqp.svpod.dc-03.com' :
-        options = opt_resolver.setup_options_LON()
-        
     if DC == 'SNG' and host == '198.19.254.159' :
         options = opt_resolver.setup_options_SNG()
-    if DC == 'SNG' and host == 'dcv-automation-amqp.svpod.dc-01.com' :
-        options = opt_resolver.setup_options_RTP()
-    if DC == 'SNG' and host == 'dcv-automation-amqp.svpod.dc-03.com' :
-        options = opt_resolver.setup_options_LON()
-    
     if DC == 'LON' and host == '198.19.254.159' :
         options = opt_resolver.setup_options_LON()
-    if DC == 'LON' and host == 'dcv-automation-amqp.svpod.dc-01.com' :
-        options = opt_resolver.setup_options_RTP()
-    if DC == 'LON' and host == 'dcv-automation-amqp.svpod.dc-02.com' :
+ 
+    if host == 'dcv-automation-amqp.svpod.dc-02.com' :
         options = opt_resolver.setup_options_SNG()
+    if host == 'dcv-automation-amqp.svpod.dc-03.com' :
+        options = opt_resolver.setup_options_LON()
+    if host == 'dcv-automation-amqp.svpod.dc-01.com' :
+        options = opt_resolver.setup_options_RTP()
 
     #while True:
     for queue in options["queues"]:
@@ -401,75 +394,31 @@ def main():
     opt_resolver = optionsresolver.OptionsResolver(log)
     options = opt_resolver.setup_options_RTP()
     
-    if location == "dcloud.rtp.sharedservices":
-        log.info("Location RTP recieved...")
-        print('RTP')
-        sharedservicesRTP = {"198.19.254.159" : 24002, "dcv-automation-amqp.svpod.dc-02.com" : 24002, "dcv-automation-amqp.svpod.dc-03.com" : 24002}
-        count = 1
-        reportcount = 0
-        while True:
-            for key, value in sharedservicesRTP.items():  
-                count = count+1
-                reportcount = reportcount+1
-                rabbitserversForRTP = {}
-                rabbitserversForRTP["host"] = key
-                rabbitserversForRTP["port"] = value
-                rabbitserversForRTP["DC"] = "RTP"
-                if reportcount == 4:
-                    reports = True
-                    reportcount = 0
-                else:
-                    reports = False
-                monitorrabbit(rabbitserversForRTP["host"], rabbitserversForRTP["port"],rabbitserversForRTP["DC"],reports=reports)
-            
-            time.sleep(options["check_rate"]) 
-            
-    if location == "dcloud.sng.sharedservices":
-        log.info("Location SNG recieved...")
-        print('SNG')
-        sharedservicesSNG = {"198.19.254.159" : 24002,"dcv-automation-amqp.svpod.dc-01.com" : 24002,"dcv-automation-amqp.svpod.dc-03.com" : 24002}
-        count = 1
-        reportcount = 0
-        while True:
-            for key, value in sharedservicesSNG.items(): 
-                count = count+1
-                reportcount = reportcount+1
-                rabbitserversForSNG = {}
-                rabbitserversForSNG["host"] = key
-                rabbitserversForSNG["port"] = value
-                rabbitserversForSNG["DC"] = "SNG"
-                if reportcount == 4:
-                    reports = True
-                    reportcount = 0
-                else:
-                    reports = False
-                monitorrabbit(rabbitserversForSNG["host"], rabbitserversForSNG["port"],rabbitserversForSNG["DC"],reports=reports)
-            
-            time.sleep(options["check_rate"])  
-    
-    if location == "dcloud.lon.sharedservices":
-        log.info("Location LON recieved...")
-        print('LON')
-        sharedservicesLON = {"198.19.254.159" : 24002,"dcv-automation-amqp.svpod.dc-01.com" : 24002,"dcv-automation-amqp.svpod.dc-02.com" : 24002}
-        count = 1
-        reportcount = 0
-        while True:
-            for key, value in sharedservicesLON.items(): 
-                count = count+1
-                reportcount = reportcount+1
-                rabbitserversForLON = {}
-                rabbitserversForLON["host"] = key
-                rabbitserversForLON["port"] = value
-                rabbitserversForLON["DC"] = "LON"
-                if reportcount == 4:
-                    reports = True
-                    reportcount = 0
-                else:
-                    reports = False
-                monitorrabbit(rabbitserversForLON["host"], rabbitserversForLON["port"],rabbitserversForLON["DC"],reports=reports)
-            
-            time.sleep(options["check_rate"]) 
 
+    rabbitServers={
+    "dcloud.rtp.sharedservices": {"198.19.254.159" : 24002,"dcv-automation-amqp.svpod.dc-02.com" : 24002, "dcv-automation-amqp.svpod.dc-03.com" : 24002},
+    "dcloud.sng.sharedservices": {"198.19.254.159" : 24002,"dcv-automation-amqp.svpod.dc-01.com" : 24002,"dcv-automation-amqp.svpod.dc-03.com" : 24002},
+    "dcloud.lon.sharedservices": {"198.19.254.159" : 24002,"dcv-automation-amqp.svpod.dc-01.com" : 24002,"dcv-automation-amqp.svpod.dc-02.com" : 24002}
+    }
+
+
+    log.info("Location received: " + str(location))
+    count = 1
+    reportcount = 0
+    while True:
+        for rabbitServer, rabbitServerPort in rabbitServers[location].items():
+            count = count+1
+            reportcount = reportcount+1
+            if reportcount == 4:
+                reports = True
+                reportcount = 0
+            else:
+                reports = False
+            monitorrabbit(rabbitServer, rabbitServerPort,location.split(".")[1].upper(),reports=reports)
+
+            time.sleep(options["check_rate"])
+
+   
 
 if __name__ == "__main__":
     main()
