@@ -79,8 +79,7 @@ class RabbitMQAlert:
         options["host"] = host
         options["port"] = port
         queue = options["queue"]
-        
-        
+        exchange = options["exchanges"]
         exchangeurl = "http://%s:%s/api/bindings/%s" % (options["host"], options["port"], options["vhost"])
         print(exchangeurl)
     
@@ -91,13 +90,16 @@ class RabbitMQAlert:
         print("DATA...................................................................")
         print(data)
         print("DATA...................................................................")
-        c,q=self.get_bindings_for_exchange(data,exName='HAPROXY-01-METRICS-SJC')
-        print("Exchange HAPROXY-01-METRICS-SJC  has "+ str(c) + " binding(s): " +str(q) )
+
+        c,q=self.get_bindings_for_exchange(data,exName=exchange)
+        print("Exchange " + str(exchange) + " has " + str(c) + " binding(s): " +str(q) )
+        self.send_notification(DC, options, "<b>[Alert]</b> [ Exchange: %s has %s  bindings %s ]" % (str(exchange), str(c), str(q)))
         print""
         c,q=self.get_bindings_for_exchange(data)
-        print("Exchange Default  has "+ str(c) + " binding(s): " +str(q) )
+        self.send_notification(DC, options, "<b>[Alert]</b> [Exchange: Default has %s bindings %s ]" % (str(c),str(q)))
+        #print("Exchange Default  has "+ str(c) + " binding(s): " +str(q) )
         print""
-
+        
 
     def createJsonForInflux(self,options,host,port,DC,measurement=measurementTasks):
         options["host"] = host
@@ -128,8 +130,11 @@ class RabbitMQAlert:
         try:
             jsonForInflux.append({"measurement":measurement,"tags":{"Monitor_server":DC,"Rabbitmq_server":to_monitor_host,"queue":options["queue"]},"fields":{"Ready Messages": messages_ready,"Messages Unacknowledged":messages_unacknowledged,"Consumers":consumers}})
         except Exception as e:
+           
             self.log.info('Error while reading the arguments...' )
         
+        #self.send_notification(DC, options, "<b>[ Alert ]</b>  [ JsonforInflux: %s ]" % (jsonForInflux))
+
         print jsonForInflux
             
         return jsonForInflux
@@ -138,6 +143,7 @@ class RabbitMQAlert:
     def check_consumer_conditions(self, options,host,port,DC):        
         options["host"] = host
         options["port"] = port
+        queue = options["queue"]
         url = "http://%s:%s/api/consumers" % (options["host"], options["port"])
         self.log.info("URL for Consumer Conditions--  \"{0}\"".format(url))
         data = self.send_request(DC, url, options)
@@ -154,6 +160,7 @@ class RabbitMQAlert:
     def check_connection_conditions(self, options,host,port,DC):
         options["host"] = host
         options["port"] = port
+        queue = options["queue"]
         url = "http://%s:%s/api/connections" % (options["host"], options["port"])
         self.log.info("URL for Connection Conditions--  \"{0}\"".format(url))
         data = self.send_request(DC, url, options)
@@ -170,6 +177,7 @@ class RabbitMQAlert:
     def check_node_conditions(self, options,host,port,DC):
         options["host"] = host
         options["port"] = port
+        queue = options["queue"]
         url = "http://%s:%s/api/nodes" % (options["host"], options["port"])
         self.log.info("URL for Node Conditions--  \"{0}\"".format(url))
         data = self.send_request(DC, url, options)
@@ -191,6 +199,12 @@ class RabbitMQAlert:
 
     def send_request(self, DC, url, options):
         queue = options["queue"]
+        print("Printing options in send request")
+        print(options)
+        print("Printing options in send request")
+        exchange = options["exchanges"]
+        print("In send Request function_________________________")
+        print(exchange)
         password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
         password_mgr.add_password(None, url, options["username"], options["password"])
         handler = urllib2.HTTPBasicAuthHandler(password_mgr)
@@ -240,6 +254,8 @@ class RabbitMQAlert:
 
         queue = options["queue"]
         queue_conditions = options["conditions"][queue]
+        exchange = options["exchanges"]
+        #exchange_conditions = options["exchangeconditions"][exchange]
         spark_room_id = queue_conditions.get("spark-room-id")
         print(spark_room_id)
         spark_bearer_id = queue_conditions.get("spark-bearer-id")
@@ -328,7 +344,7 @@ def monitorrabbit(host, port,DC,reports=False):
                 or "spark-bearer-id" in queue_conditions :
             rabbitmq_alert.check_queue_conditions(options,host,port,DC)
             rabbitmq_alert.createJsonForInflux(options,host,port,DC)
-            rabbitmq_alert.get_data_for_exchanges(options, host, port, DC)
+         
 
         # common checks for all queues
         default_conditions = options["default_conditions"]
@@ -339,6 +355,18 @@ def monitorrabbit(host, port,DC,reports=False):
         if "consumers_connected" in default_conditions:
             rabbitmq_alert.check_consumer_conditions(options,host,port,DC)
      
+    for exchange in options["exchanges"]:
+        options["queue"] = queue
+        options["exchanges"] = exchange
+        exchange_conditions = options["exchangeconditions"][exchange]
+        log.info("Following are exchange_conditions:")
+        log.info(exchange_conditions)
+        
+        if "message_rate_in" in exchange_conditions \
+                or "message_rate_out" in exchange_conditions \
+                or "bindings" in exchange_conditions :
+            rabbitmq_alert.get_data_for_exchanges(options, host, port, DC)
+
     if reports == True:
         CONFIG_FILE_PATHS = []
         CONFIG_FILE_PATHS = ['/root/rabbitmqalert/config_RTP.ini','/root/rabbitmqalert/config_SNG.ini','/root/rabbitmqalert/config_LON.ini']

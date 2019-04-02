@@ -35,11 +35,11 @@ class OptionsResolver:
         arguments.add_option("--open-connections", dest="open_connections", help="The number of open connections", type="int")
         arguments.add_option("--nodes-running", dest="nodes_running", help="The number of nodes running", type="int")
         arguments.add_option("--node-memory-used", dest="node_memory_used", help="Memory used by each node in MBs", type="int")
+        arguments.add_option("--publish-in",dest="message_rate_in",help="The size for messages published-in to alert as warning",type="int")
+        arguments.add_option("--publish-out",dest="message_rate_out",help="The size for messages published-out to alert as warning",type="int")
+        arguments.add_option("--bindings",dest="bindings",help="The size of bindings to alert as warning",type="int")
         arguments.add_option("--spark-bot-id", dest="spark_bot_id", help="Spark bot id", type="string")
         arguments.add_option("--spark-bearer-id", dest="spark_bearer-id", help="Spark bearer id", type="string")
-        arguments.add_option("--publish_in",dest="message_rate_in",help="The size for messages published-in to alert as warning",type="int")
-        arguments.add_option("--publish_out",dest="message_rate_out",help="The size for messages published-out to alert as warning",type="int")
-        arguments.add_option("--bindings",dest="bindings",help="The size of bindings to alert as warning",type="int")
         cli_arguments = arguments.parse_args()[0]
 
         # set as defaults the cli argument values
@@ -64,14 +64,16 @@ class OptionsResolver:
         options["spark-room-id"] = cli_arguments.check_rate or config_file_options.get("spark", "spark-room-id")
         options["spark-bearer-id"] = cli_arguments.check_rate or config_file_options.get("spark", "spark-bearer-id")
         options["queues"] = cli_arguments.queues or config_file_options.get("Server", "queues")
-        options["exchanges"] = cli_arguments.exchanges or config_file_options.get("Server", "exchanges")
+        options["exchanges"] = cli_arguments.check_rate or config_file_options.get("Server", "Exchanges")
         options["queues"] = options["queues"].split(",")
         options["exchanges"] = options["exchanges"].split(",")
+        print("________________________________________________")
         print(options["exchanges"])
+        print("__________________________________________________")
         # get queue specific condition values if any, else construct from the generic one
         conditions = OptionsResolver.construct_conditions(options, cli_arguments, config_file_options)
-        options = dict(options.items() + conditions.items())
-
+        exchangeconditions = OptionsResolver.construct_exchangeconditions(options, cli_arguments, config_file_options)
+        options = dict(options.items() + conditions.items() + exchangeconditions.items())
         return options
 
 
@@ -97,6 +99,9 @@ class OptionsResolver:
         arguments.add_option("--open-connections", dest="open_connections", help="The number of open connections", type="int")
         arguments.add_option("--nodes-running", dest="nodes_running", help="The number of nodes running", type="int")
         arguments.add_option("--node-memory-used", dest="node_memory_used", help="Memory used by each node in MBs", type="int")
+        arguments.add_option("--publish-in",dest="message_rate_in",help="The size for messages published-in to alert as warning",type="int")
+        arguments.add_option("--publish-out",dest="message_rate_out",help="The size for messages published-out to alert as warning",type="int")
+        arguments.add_option("--bindings",dest="bindings",help="The size of bindings to alert as warning",type="int")
         arguments.add_option("--spark-bot-id", dest="spark_bot_id", help="Spark bot id", type="string")
         arguments.add_option("--spark-bearer-id", dest="spark_bearer_id", help="Spark bearer id", type="string")
         cli_arguments = arguments.parse_args()[0]
@@ -123,12 +128,14 @@ class OptionsResolver:
         options["spark-room-id"] = cli_arguments.check_rate or config_file_options.get("spark", "spark-room-id")
         options["spark-bearer-id"] = cli_arguments.check_rate or config_file_options.get("spark", "spark-bearer-id")
         options["queues"] = cli_arguments.queues or config_file_options.get("Server", "queues")
+        options["exchanges"] = cli_arguments.check_rate or config_file_options.get("Server", "Exchanges")
         options["queues"] = options["queues"].split(",")
+        options["exchanges"] = options["exchanges"].split(",")
 
         # get queue specific condition values if any, else construct from the generic one
         conditions = OptionsResolver.construct_conditions(options, cli_arguments, config_file_options)
-        options = dict(options.items() + conditions.items())
-
+        exchangeconditions = OptionsResolver.construct_exchangeconditions(options, cli_arguments, config_file_options)
+        options = dict(options.items() + conditions.items() + exchangeconditions.items())
         return options
 
     def setup_options_LON(self):
@@ -153,6 +160,9 @@ class OptionsResolver:
         arguments.add_option("--open-connections", dest="open_connections", help="The number of open connections", type="int")
         arguments.add_option("--nodes-running", dest="nodes_running", help="The number of nodes running", type="int")
         arguments.add_option("--node-memory-used", dest="node_memory_used", help="Memory used by each node in MBs", type="int")
+        arguments.add_option("--publish-in",dest="message_rate_in",help="The size for messages published-in to alert as warning",type="int")
+        arguments.add_option("--publish-out",dest="message_rate_out",help="The size for messages published-out to alert as warning",type="int")
+        arguments.add_option("--bindings",dest="bindings",help="The size of bindings to alert as warning",type="int")
         arguments.add_option("--spark-bot-id", dest="spark_bot_id", help="Spark bot id", type="string")
         arguments.add_option("--spark-bearer-id", dest="spark_bearer_id", help="Spark bearer id", type="string")
         cli_arguments = arguments.parse_args()[0]
@@ -179,15 +189,16 @@ class OptionsResolver:
         options["spark-room-id"] = cli_arguments.check_rate or config_file_options.get("spark", "spark-room-id")
         options["spark-bearer-id"] = cli_arguments.check_rate or config_file_options.get("spark", "spark-bearer-id")
         options["queues"] = cli_arguments.queues or config_file_options.get("Server", "queues")
+        options["exchanges"] = cli_arguments.check_rate or config_file_options.get("Server", "Exchanges")
         options["queues"] = options["queues"].split(",")
+        options["exchanges"] = options["exchanges"].split(",")
 
         # get queue specific condition values if any, else construct from the generic one
         conditions = OptionsResolver.construct_conditions(options, cli_arguments, config_file_options)
-        options = dict(options.items() + conditions.items())
+        exchangeconditions = OptionsResolver.construct_exchangeconditions(options, cli_arguments, config_file_options)
+        options = dict(options.items() + conditions.items() + exchangeconditions.items())
 
         return options
-
-
 
     @staticmethod 
     def construct_int_option(cli_arguments, config_file_options, conditions, section_key, key, default_conditions=None):
@@ -196,6 +207,22 @@ class OptionsResolver:
         except:
             if default_conditions is not None and key in default_conditions:
                 conditions[key] = default_conditions[key]
+                
+    @staticmethod 
+    def construct_int_option_exchange(cli_arguments, config_file_options, exchangeconditions, section_key, key, default_conditions=None):
+        try:
+            exchangeconditions[key] = getattr(cli_arguments, key) or config_file_options.getint(section_key, key)
+        except:
+            if default_conditions is not None and key in default_conditions:
+                exchangeconditions[key] = default_conditions[key]
+                
+    @staticmethod 
+    def construct_str_option_exchange(cli_arguments, config_file_options, exchangeconditions, section_key, key, default_conditions=None):
+        try:
+            exchangeconditions[key] = getattr(cli_arguments, key) or config_file_options.get(section_key, key)
+        except:
+            if default_conditions is not None and key in default_conditions:
+                exchangeconditions[key] = default_conditions[key]
 
     @staticmethod
     def construct_str_option(cli_arguments, config_file_options, conditions, section_key, key, default_conditions=None):
@@ -204,8 +231,6 @@ class OptionsResolver:
         except:
             if default_conditions is not None and key in default_conditions:
                 conditions[key] = default_conditions[key]
-
-
 
     @staticmethod
     def construct_conditions(options, cli_arguments, config_file_options):
@@ -218,8 +243,6 @@ class OptionsResolver:
             OptionsResolver.construct_int_option(cli_arguments, config_file_options, default_conditions, "Conditions", key)
         for key in ("spark-room-id","spark-bearer-id"):   
             OptionsResolver.construct_str_option(cli_arguments, config_file_options, default_conditions, "Conditions", key)
-
-
 
         # check if queue specific condition sections exist, if not use the generic conditions
         if "queues" in options:
@@ -235,6 +258,30 @@ class OptionsResolver:
                     OptionsResolver.construct_str_option(cli_arguments, config_file_options, queue_conditions, queue_conditions_section_name, key, default_conditions)
 
         return {"conditions": conditions, "default_conditions": default_conditions}
+    
+    @staticmethod
+    def construct_exchangeconditions(options, cli_arguments, config_file_options):
+        exchangeconditions = dict()
+
+        # get the generic condition values from the "[ExchangeConditions]" section
+        default_conditions = dict()  
+        for key in ("message_rate_in", "message_rate_out", "bindings"):
+            OptionsResolver.construct_int_option_exchange(cli_arguments, config_file_options, default_conditions, "ExchangeConditions", key)
+        for key in ("spark-room-id","spark-bearer-id"):   
+            OptionsResolver.construct_str_option_exchange(cli_arguments, config_file_options, default_conditions, "ExchangeConditions", key)
+
+        # check if queue specific ExchangeCondition sections exist, if not use the generic conditions
+        if "exchanges" in options:
+            for exchange in options["exchanges"]:
+                exchange_conditions_section_name = "ExchangeConditions:" + exchange
+                exchange_conditions = dict()
+                exchangeconditions[exchange] = exchange_conditions
+                for key in ("message_rate_in", "message_rate_out", "bindings"):
+                    OptionsResolver.construct_int_option_exchange(cli_arguments, config_file_options, exchange_conditions, exchange_conditions_section_name, key, default_conditions)
+                for key in ("spark-room-id","spark-bearer-id") :   
+                    OptionsResolver.construct_str_option_exchange(cli_arguments, config_file_options, exchange_conditions, exchange_conditions_section_name, key, default_conditions)
+                    
+        return {"exchangeconditions": exchangeconditions, "default_conditions": default_conditions}
     
 def main():
     log = logger.Logger()
