@@ -40,7 +40,6 @@ class OptionsResolver:
         arguments.add_option("--bindings",dest="bindings",help="The size of bindings to alert as warning",type="int")
         arguments.add_option("--spark-bot-id", dest="spark_bot_id", help="Spark bot id", type="string")
         arguments.add_option("--spark-bearer-id", dest="spark_bearer-id", help="Spark bearer id", type="string")
-        
         cli_arguments = arguments.parse_args()[0]
 
         # set as defaults the cli argument values
@@ -75,7 +74,6 @@ class OptionsResolver:
         conditions = OptionsResolver.construct_conditions(options, cli_arguments, config_file_options)
         exchangeconditions = OptionsResolver.construct_exchangeconditions(options, cli_arguments, config_file_options)
         options = dict(options.items() + conditions.items() + exchangeconditions.items())
-
         return options
 
 
@@ -138,7 +136,6 @@ class OptionsResolver:
         conditions = OptionsResolver.construct_conditions(options, cli_arguments, config_file_options)
         exchangeconditions = OptionsResolver.construct_exchangeconditions(options, cli_arguments, config_file_options)
         options = dict(options.items() + conditions.items() + exchangeconditions.items())
-
         return options
 
     def setup_options_LON(self):
@@ -203,8 +200,6 @@ class OptionsResolver:
 
         return options
 
-
-
     @staticmethod 
     def construct_int_option(cli_arguments, config_file_options, conditions, section_key, key, default_conditions=None):
         try:
@@ -237,8 +232,6 @@ class OptionsResolver:
             if default_conditions is not None and key in default_conditions:
                 conditions[key] = default_conditions[key]
 
-
-
     @staticmethod
     def construct_conditions(options, cli_arguments, config_file_options):
         conditions = dict()
@@ -250,8 +243,6 @@ class OptionsResolver:
             OptionsResolver.construct_int_option(cli_arguments, config_file_options, default_conditions, "Conditions", key)
         for key in ("spark-room-id","spark-bearer-id"):   
             OptionsResolver.construct_str_option(cli_arguments, config_file_options, default_conditions, "Conditions", key)
-
-
 
         # check if queue specific condition sections exist, if not use the generic conditions
         if "queues" in options:

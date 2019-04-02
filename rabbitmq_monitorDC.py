@@ -78,10 +78,8 @@ class RabbitMQAlert:
     def get_data_for_exchanges(self, options, host, port, DC):
         options["host"] = host
         options["port"] = port
-        print("Queue in get data")
         queue = options["queue"]
         exchange = options["exchanges"]
-        
         exchangeurl = "http://%s:%s/api/bindings/%s" % (options["host"], options["port"], options["vhost"])
         print(exchangeurl)
     
@@ -92,13 +90,14 @@ class RabbitMQAlert:
         print("DATA...................................................................")
         print(data)
         print("DATA...................................................................")
+
         c,q=self.get_bindings_for_exchange(data,exName=exchange)
         print("Exchange " + str(exchange) + " has " + str(c) + " binding(s): " +str(q) )
-        #print("Exchange HAPROXY-01-METRICS-SJC  has "+ str(c) + " binding(s): " +str(q) )
         self.send_notification(DC, options, "<b>[Alert]</b> [ Exchange: %s has %s  bindings %s ]" % (str(exchange), str(c), str(q)))
         print""
         c,q=self.get_bindings_for_exchange(data)
-        print("Exchange Default  has "+ str(c) + " binding(s): " +str(q) )
+        self.send_notification(DC, options, "<b>[Alert]</b> [Exchange: Default has %s bindings %s ]" % (str(c),str(q)))
+        #print("Exchange Default  has "+ str(c) + " binding(s): " +str(q) )
         print""
         
 
@@ -131,10 +130,11 @@ class RabbitMQAlert:
         try:
             jsonForInflux.append({"measurement":measurement,"tags":{"Monitor_server":DC,"Rabbitmq_server":to_monitor_host,"queue":options["queue"]},"fields":{"Ready Messages": messages_ready,"Messages Unacknowledged":messages_unacknowledged,"Consumers":consumers}})
         except Exception as e:
-            
+           
             self.log.info('Error while reading the arguments...' )
         
         #self.send_notification(DC, options, "<b>[ Alert ]</b>  [ JsonforInflux: %s ]" % (jsonForInflux))
+
         print jsonForInflux
             
         return jsonForInflux
@@ -388,7 +388,6 @@ def main():
     log = logger.Logger()
     log.info("Starting application...")
     location=os.environ['LOCATION']
-    #location="dcloud.rtp.sharedservices"
     log.info("Location recieved from controller!!")
     print(location)
     opt_resolver = optionsresolver.OptionsResolver(log)
