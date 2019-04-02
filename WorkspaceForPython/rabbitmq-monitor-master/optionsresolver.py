@@ -14,7 +14,7 @@ class OptionsResolver:
         self.log = logger
 
     def setup_options_RTP(self):
-        CONFIG_FILE_PATH = "C://Users//swadvani//WorkspaceForPython//rabbitmq-monitor-master//config_RTP.ini"
+        CONFIG_FILE_PATH = r"/root/rabbitmqalert/config_RTP.ini"
         arguments = optparse.OptionParser()
         arguments.add_option("-c", "--config-file", dest="config_file", help="Path of the configuration file", type="string")
         #arguments.add_option("--host", dest="host", help="RabbitMQ API address", type="string")
@@ -80,7 +80,7 @@ class OptionsResolver:
 
 
     def setup_options_SNG(self):
-        CONFIG_FILE_PATH = r"C://Users//swadvani//WorkspaceForPython//rabbitmq-monitor-master//config_SNG.ini"
+        CONFIG_FILE_PATH = r"/root/rabbitmqalert/config_SNG.ini"
         arguments = optparse.OptionParser()
         arguments.add_option("-c", "--config-file", dest="config_file", help="Path of the configuration file", type="string")
         #arguments.add_option("--host", dest="host", help="RabbitMQ API address", type="string")
@@ -142,7 +142,7 @@ class OptionsResolver:
         return options
 
     def setup_options_LON(self):
-        CONFIG_FILE_PATH = r"C://Users//swadvani//WorkspaceForPython//rabbitmq-monitor-master//config_LON.ini"
+        CONFIG_FILE_PATH = r"/root/rabbitmqalert/config_LON.ini"
         arguments = optparse.OptionParser()
         arguments.add_option("-c", "--config-file", dest="config_file", help="Path of the configuration file", type="string")
         #arguments.add_option("--host", dest="host", help="RabbitMQ API address", type="string")
