@@ -57,18 +57,18 @@ class RabbitMQAlert:
 
         if ready_size is not None and messages_ready > ready_size:
             print("In send_notifications")
-            self.send_notification(DC, options, "<b>[ Alert ]</b> %s [ Condition: messages_ready = %d > %d ]" % (queue, messages_ready, ready_size))
+            self.send_notification(DC, options, "- <b>[ Alert - %s  ]</b> %s [ Condition: messages_ready = %d > %d ]" % (options['rabbitServerLocation'],queue, messages_ready, ready_size))
             print("send_notifications called")
         if unack_size is not None and messages_unacknowledged > unack_size:
-            self.send_notification(DC, options, "<b>[ Alert ]</b> %s [ Condition: messages_unacknowledged = %d > %d ]" % (queue, messages_unacknowledged, unack_size))
+            self.send_notification(DC, options, "- <b>[ Alert - Queue - %s  ]</b> %s [ Condition: messages_unacknowledged = %d > %d ]" % (options['rabbitServerLocation'],queue, messages_unacknowledged, unack_size))
 
         if total_size is not None and messages > total_size:
-            self.send_notification(DC, options, "<b>[ Alert ]</b> %s [ Condition:  messages = %d > %d ]" % (queue, messages, total_size))
+            self.send_notification(DC, options, "- <b>[ Alert - Queue - %s  ]</b> %s [ Condition:  messages = %d > %d ]" % (options['rabbitServerLocation'],queue, messages, total_size))
 
         if consumers_connected_min is not None and consumers < consumers_connected_min:
-            self.send_notification(DC, options, "<b>[ Alert ]</b> %s [ Condition: queue_consumers_connected = %d < %d ]" % (queue, consumers, consumers_connected_min))
+            self.send_notification(DC, options, "- <b>[ Alert - Queue - %s  ]</b> %s [ Condition: queue_consumers_connected = %d < %d ]" % (options['rabbitServerLocation'],queue, consumers, consumers_connected_min))
         if consumers_connected_max is not None and consumers > consumers_connected_max:
-            self.send_notification(DC, options, "<b>[ Alert ]</b> %s [ Condition: queue_consumers_connected = %d > %d ]" % (queue, consumers, consumers_connected_max))
+            self.send_notification(DC, options, "- <b>[ Alert - Queue -  %s  ]</b> %s [ Condition: queue_consumers_connected = %d > %d ]" % (options['rabbitServerLocation'],queue, consumers, consumers_connected_max))
 
         if influxDb:
             self.createJsonForInfluxQueue(messages_ready,messages_unacknowledged,messages,consumers,options,host,port,DC)
@@ -107,12 +107,12 @@ class RabbitMQAlert:
 
         if exchange!='default':
             c,q=self.get_bindings_for_exchange(data,exName=exchange)
-            print("Exchange " + str(exchange) + " has " + str(c) + " binding(s): " +str(q) )
-            self.send_notification(DC, options, "<b>[Alert]</b> [ Exchange: %s has %s  bindings %s ]" % (str(exchange), str(c), str(q)))
+            #print("Exchange " + str(exchange) + " has " + str(c) + " binding(s): " +str(q) )
+            self.send_notification(DC, options, "<b>[ Debug ]</b> [ Exchange: %s has %s  bindings %s ]" % (str(exchange), str(c), str(q)))
             print""
         else:
             c,q=self.get_bindings_for_exchange(data)
-            self.send_notification(DC, options, "<b>[Alert]</b> [Exchange: Default has %s bindings %s ]" % (str(c),str(q)))
+            self.send_notification(DC, options, "<b>[ Debug ]</b> [Exchange: Default has %s bindings %s ]" % (str(c),str(q)))
             #print("Exchange Default  has "+ str(c) + " binding(s): " +str(q) )
             print""
 
@@ -137,7 +137,7 @@ class RabbitMQAlert:
             jsonForInflux.append({"measurement":measurement,"tags":{"Monitor_location":DC,"Rabbitmq_server":to_monitor_host,"objectType":"queue","objectName":options["queue"]},"fields":{"msgReady": messages_ready,"msgUnack":messages_unacknowledged,"msgTotal":messages,"consumers":consumers}})
         except Exception as e:
             self.log.info('Error while reading the arguments...' )
-        self.send_notification(DC, options, "<b>[ Alert ]</b>  [ JsonforInflux: %s ]" % (jsonForInflux))
+        self.send_notification(DC, options, "<b>[ Debug ]</b>  [ JsonforInflux: %s ]" % (jsonForInflux))
         influx.writeToInfluxDb(jsonForInflux,credsFile='/root/creds/creds.cfg',influxDb='influxGlobal',ssl=True, verify_ssl=True)
         print jsonForInflux
         return jsonForInflux
@@ -163,7 +163,7 @@ class RabbitMQAlert:
                 jsonForInflux.append({"measurement":measurement,"tags":{"Monitor_location":DC,"Rabbitmq_server":to_monitor_host,"objectType":"exchange","objectName":options["exchanges"]},"fields":{"rateIn": rate_in,"rateOut":rate_out,"bindingTotal":binding_count,"binding":binding}})
             except Exception as e:
                 self.log.info('Error while reading the arguments...' )
-            self.send_notification(DC, options, "<b>[ Alert ]</b>  [ JsonforInflux: %s ]" % (jsonForInflux))
+            self.send_notification(DC, options, "<b>[ Debug ]</b>  [ JsonforInflux: %s ]" % (jsonForInflux))
             influx.writeToInfluxDb(jsonForInflux,credsFile='/root/creds/creds.cfg',influxDb='influxGlobal' ,ssl=True, verify_ssl=True)
             print jsonForInflux
 
@@ -193,7 +193,7 @@ class RabbitMQAlert:
         consumers_connected_min = options["default_conditions"].get("consumers_connected")
 
         if consumers_connected is not None and consumers_connected < consumers_connected_min:
-            self.send_notification(DC, options, "<b>[Alert]</b> %s [ Condition: default_consumers_connected = %d < %d ]" % (queue, consumers_connected, consumers_connected_min))
+            self.send_notification(DC, options, "- <b>[ Alert - Queue - %s ]</b> %s [ Condition: default_consumers_connected = %d < %d ]" % (options['rabbitServerLocation'], queue, consumers_connected, consumers_connected_min))
 
     def check_connection_conditions(self, options,host,port,DC):
         options["host"] = host
@@ -210,7 +210,7 @@ class RabbitMQAlert:
         open_connections_min = options["default_conditions"].get("open_connections")
 
         if open_connections is not None and open_connections < open_connections_min:
-            self.send_notification(DC, options, "<b>[ Alert ]</b> %s [ Condition: open_connections = %d < %d ]" % (queue, open_connections, open_connections_min))
+            self.send_notification(DC, options, "- <b>[ Alert - Node - %s ]</b> %s [ Condition: open_connections = %d < %d ]" % (options['rabbitServerLocation'],queue, open_connections, open_connections_min))
 
     def check_node_conditions(self, options,host,port,DC):
         options["host"] = host
@@ -229,11 +229,11 @@ class RabbitMQAlert:
         node_memory = conditions.get("node_memory_used")
 
         if nodes_run is not None and nodes_running < nodes_run:
-            self.send_notification(DC, options, "<b>[ Alert ]</b> %s [ Condition: nodes_running = %d < %d ]" % (queue, nodes_running, nodes_run))
+            self.send_notification(DC, options, "- <b>[ Alert - Node - %s ]</b> %s [ Condition: nodes_running = %d < %d ]" % (options['rabbitServerLocation'],queue, nodes_running, nodes_run))
 
         for node in data:
             if node_memory is not None and node.get("mem_used") > (node_memory * 1000000):
-                self.send_notification(DC, options, "<b>[ Alert ]</b> %s [ Condition: node %s - node_memory_used = %d > %d MBs ]" % (queue, node.get("name"), node.get("mem_used"), node_memory))
+                self.send_notification(DC, options, "- <b>[ Alert - Node - %s ]</b> %s [ Condition: node %s - node_memory_used = %d > %d MBs ]" % (options['rabbitServerLocation'],queue, node.get("name"), node.get("mem_used"), node_memory))
 
     def send_request(self, DC, url, options):
         queue = options["queue"]
@@ -261,11 +261,11 @@ class RabbitMQAlert:
             if hasattr(e,'code') or hasattr(e,'reason'):
                 if e.code == 404 :
                     print(e.code)
-                    self.send_notification(DC, options, "- <b>[ CRITICAL ] %s [ QUEUE NOT FOUND!!! Error Code - %s %s ]</b>" %(queue,e.code,e.reason))
+                    self.send_notification(DC, options, "- <b>[ CRITICAL - Queue - %s ] %s [ QUEUE NOT FOUND!!! Error Code - %s %s ]</b>" %(options['rabbitServerLocation'],queue,e.code,e.reason))
                 if e.code == 408 :
-                    self.send_notification(DC, options, "- <b>[ CRITICAL ] %s [ SERVER NOT FOUND!!! %s ]</b>" %(queue,e.reason))
+                    self.send_notification(DC, options, "- <b>[ CRITICAL - Node - %s] %s [ SERVER NOT FOUND!!! %s ]</b>" %(options['rabbitServerLocation'],queue,e.reason))
         except (urllib2.URLError) as e:   
-            self.send_notification(DC, options, "- <b>[ CRITICAL ] %s `` %s `` </b>" %(queue,e))
+            self.send_notification(DC, options, "- <b>[ CRITICAL - Node - %s ] %s `` %s `` </b>" %(options['rabbitServerLocation'],queue,e))
             return None
 
     def send_notification(self, DC, options, body,tags=True):
@@ -309,7 +309,7 @@ class RabbitMQAlert:
             spark_bearer_id = options["spark-bearer-id"]    
             print(spark_bearer_id)
         
-        text_tag = " [Rabbit_Server_location: %s] [Monitor_location: %s]" % (to_monitor_host,os.environ['LOCATION'])
+        text_tag = " [RabbitMQ_Server_Location: %s] [Monitor_Location: %s]" % (to_monitor_host,os.environ['LOCATION'])
         text_spark = ""
         if tags == True:
             text_spark = "%s %s" % (body, text_tag)
@@ -347,17 +347,23 @@ def monitorrabbit(host, port,DC,reports=False):
     
     if DC == 'RTP' and host == '198.19.254.159' :
         options = opt_resolver.setup_options_RTP()
+        options['rabbitServerLocation']=DC
     if DC == 'SNG' and host == '198.19.254.159' :
         options = opt_resolver.setup_options_SNG()
+        options['rabbitServerLocation']=DC
     if DC == 'LON' and host == '198.19.254.159' :
         options = opt_resolver.setup_options_LON()
- 
+        options['rabbitServerLocation']=DC 
+
     if host == 'dcv-automation-amqp.svpod.dc-02.com' :
         options = opt_resolver.setup_options_SNG()
+        options['rabbitServerLocation']="SNG"
     if host == 'dcv-automation-amqp.svpod.dc-03.com' :
         options = opt_resolver.setup_options_LON()
+        options['rabbitServerLocation']="LON"
     if host == 'dcv-automation-amqp.svpod.dc-01.com' :
         options = opt_resolver.setup_options_RTP()
+        options['rabbitServerLocation']="RTP"
 
     #while True:
     for queue in options["queues"]:
@@ -411,14 +417,14 @@ def monitorrabbit(host, port,DC,reports=False):
                 if "[Conditions:" in line:
                     output=output +  " <br/> Queue: " + re.sub('[\[\]]','', line.split(":")[1][:-1])
                 if "ready_queue_size" in line:
-                    output=output + " <br/> -Ready Messages: " + line.split("=")[1][:-1]
+                    output=output + " <br/> -  Ready Messages: " + line.split("=")[1][:-1]
                 if "unack_queue_size" in line:
-                    output=output + "<br/> -UnAcked Messages: " + line.split("=")[1][:-1]
+                    output=output + "<br/> -  UnAcked Messages: " + line.split("=")[1][:-1]
                 if "queue_consumers_connected_min" in line:
-                    output=output + "<br/> -Consumers_min: " + line.split("=")[1][:-1]
+                    output=output + "<br/> -  Consumers_min: " + line.split("=")[1][:-1]
                 if "queue_consumers_connected_max" in line:
-                    output=output + "<br/> -Consumers_max: " + line.split("=")[1][:-1]
-            rabbitmq_alert.send_notification(DC, options, "<b>[ Report ]</b>  %s <br/>" % (output),tags=False)
+                    output=output + "<br/> -  Consumers_max: " + line.split("=")[1][:-1]
+            rabbitmq_alert.send_notification(DC, options, "<b>[ Config Report - %s ]</b>  %s <br/>" % (options['rabbitServerLocation'],output),tags=False)
 
      
 
@@ -447,7 +453,7 @@ def main():
         for rabbitServer, rabbitServerPort in rabbitServers[location].items():
             count = count+1
             reportcount = reportcount+1
-            if reportcount == 4:
+            if reportcount >= 2:
                 reports = True
                 reportcount = 0
             else:
