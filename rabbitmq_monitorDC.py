@@ -5,12 +5,21 @@ import json
 import time
 import smtplib
 import optionsresolver
-import logger
+import logger as logger
 import httplib
 import os
 import re
 import sys
 from telnetlib import theNULL
+
+
+#Import InfluxDb module from mounted code
+rootPath=r'/root/scripts/'
+sys.path.append(rootPath)
+influxPath=r'/root/scripts/core/'
+sys.path.append(influxPath)
+import influx
+
 
 measurementTasks='rabbitmq_monitor'
 
@@ -18,7 +27,7 @@ class RabbitMQAlert:
     def __init__(self, log):
         self.log = log
 
-    def check_queue_conditions(self, options, host, port, DC):
+    def check_queue_conditions(self, options, host, port, DC, influxDb=True):
         options["host"] = host
         options["port"] = port
         queue = options["queue"]
@@ -61,6 +70,10 @@ class RabbitMQAlert:
         if consumers_connected_max is not None and consumers > consumers_connected_max:
             self.send_notification(DC, options, "<b>[ Alert ]</b> %s [ Condition: queue_consumers_connected = %d > %d ]" % (queue, consumers, consumers_connected_max))
 
+        if influxDb:
+            self.createJsonForInfluxQueue(messages_ready,messages_unacknowledged,messages,consumers,options,host,port,DC)
+
+
     def get_bindings_for_exchange(self,data , exName='',include_vpods=False):
         out=[]
         for item in data:
@@ -75,7 +88,7 @@ class RabbitMQAlert:
 
 
 
-    def get_data_for_exchanges(self, options, host, port, DC):
+    def get_data_for_exchanges(self, options, host, port, DC, influxDb=True):
         options["host"] = host
         options["port"] = port
         queue = options["queue"]
@@ -91,53 +104,78 @@ class RabbitMQAlert:
         print(data)
         print("DATA...................................................................")
 
-        c,q=self.get_bindings_for_exchange(data,exName=exchange)
-        print("Exchange " + str(exchange) + " has " + str(c) + " binding(s): " +str(q) )
-        self.send_notification(DC, options, "<b>[Alert]</b> [ Exchange: %s has %s  bindings %s ]" % (str(exchange), str(c), str(q)))
-        print""
-        c,q=self.get_bindings_for_exchange(data)
-        self.send_notification(DC, options, "<b>[Alert]</b> [Exchange: Default has %s bindings %s ]" % (str(c),str(q)))
-        #print("Exchange Default  has "+ str(c) + " binding(s): " +str(q) )
-        print""
+
+        if exchange!='default':
+            c,q=self.get_bindings_for_exchange(data,exName=exchange)
+            print("Exchange " + str(exchange) + " has " + str(c) + " binding(s): " +str(q) )
+            self.send_notification(DC, options, "<b>[Alert]</b> [ Exchange: %s has %s  bindings %s ]" % (str(exchange), str(c), str(q)))
+            print""
+        else:
+            c,q=self.get_bindings_for_exchange(data)
+            self.send_notification(DC, options, "<b>[Alert]</b> [Exchange: Default has %s bindings %s ]" % (str(c),str(q)))
+            #print("Exchange Default  has "+ str(c) + " binding(s): " +str(q) )
+            print""
+
+        if influxDb:
+            self.createJsonForInfluxExchange(0,0,c,q,options,host,port,DC)
         
 
-    def createJsonForInflux(self,options,host,port,DC,measurement=measurementTasks):
+    def createJsonForInfluxQueue(self,messages_ready,messages_unacknowledged,messages,consumers,options,host,port,DC,measurement=measurementTasks):
         options["host"] = host
         options["port"] = port
-        url = "http://%s:%s/api/queues/%s/%s" % (options["host"], options["port"], options["vhost"], options["queue"])
-        data = self.send_request(DC,url,options)
-        if data is None:
-            return
-
-        messages_ready = data.get("messages_ready")
-        messages_unacknowledged = data.get("messages_unacknowledged")
-        messages = data.get("messages")
-        consumers = data.get("consumers")
-        if options["host"] == "198.19.254.159" :
+        if host == "198.19.254.159" :
             to_monitor_host = "local"
-            
-        if options["host"] == "dcv-automation-amqp.svpod.dc-01.com" :
+        if host == "dcv-automation-amqp.svpod.dc-01.com" :
             to_monitor_host = "RTP"
-            
-        if options["host"] == "dcv-automation-amqp.svpod.dc-02.com" :
+        if host == "dcv-automation-amqp.svpod.dc-02.com" :
             to_monitor_host = "SNG"
-
-        if options["host"] == "dcv-automation-amqp.svpod.dc-03.com" :
+        if host == "dcv-automation-amqp.svpod.dc-03.com" :
             to_monitor_host = "LON"
-            
         jsonForInflux=[]
         print("creating the json")
         try:
-            jsonForInflux.append({"measurement":measurement,"tags":{"Monitor_server":DC,"Rabbitmq_server":to_monitor_host,"queue":options["queue"]},"fields":{"Ready Messages": messages_ready,"Messages Unacknowledged":messages_unacknowledged,"Consumers":consumers}})
+            jsonForInflux.append({"measurement":measurement,"tags":{"Monitor_location":DC,"Rabbitmq_server":to_monitor_host,"objectType":"queue","objectName":options["queue"]},"fields":{"msgReady": messages_ready,"msgUnack":messages_unacknowledged,"msgTotal":messages,"consumers":consumers}})
         except Exception as e:
-           
             self.log.info('Error while reading the arguments...' )
-        
-        #self.send_notification(DC, options, "<b>[ Alert ]</b>  [ JsonforInflux: %s ]" % (jsonForInflux))
-
+        self.send_notification(DC, options, "<b>[ Alert ]</b>  [ JsonforInflux: %s ]" % (jsonForInflux))
+        influx.writeToInfluxDb(jsonForInflux,credsFile='/root/creds/creds.cfg',influxDb='influxGlobal',ssl=True, verify_ssl=True)
         print jsonForInflux
-            
         return jsonForInflux
+
+
+
+    def createJsonForInfluxExchange(self,rate_in,rate_out,binding_count,bindings,options,host,port,DC,measurement=measurementTasks):
+        options["host"] = host
+        options["port"] = port
+        if host == "198.19.254.159" :
+            to_monitor_host = "local"
+        if host == "dcv-automation-amqp.svpod.dc-01.com" :
+            to_monitor_host = "RTP"
+        if host == "dcv-automation-amqp.svpod.dc-02.com" :
+            to_monitor_host = "SNG"
+        if host == "dcv-automation-amqp.svpod.dc-03.com" :
+            to_monitor_host = "LON"
+        jsonForInflux=[]
+        print("creating the json")
+
+        for binding in bindings:
+            try:
+                jsonForInflux.append({"measurement":measurement,"tags":{"Monitor_location":DC,"Rabbitmq_server":to_monitor_host,"objectType":"exchange","objectName":options["exchanges"]},"fields":{"rateIn": rate_in,"rateOut":rate_out,"bindingTotal":binding_count,"binding":binding}})
+            except Exception as e:
+                self.log.info('Error while reading the arguments...' )
+            self.send_notification(DC, options, "<b>[ Alert ]</b>  [ JsonforInflux: %s ]" % (jsonForInflux))
+            influx.writeToInfluxDb(jsonForInflux,credsFile='/root/creds/creds.cfg',influxDb='influxGlobal' ,ssl=True, verify_ssl=True)
+            print jsonForInflux
+
+        if len(bindings)==0:
+            jsonForInflux.append({"measurement":measurement,"tags":{"Monitor_location":DC,"Rabbitmq_server":to_monitor_host,"objectType":"exchange","objectName":options["exchanges"]},"fields":{"rateIn": rate_in,"rateOut":rate_out,"bindingTotal":0,"binding":"-"}})
+            influx.writeToInfluxDb(jsonForInflux,credsFile='/root/creds/creds.cfg',influxDb='influxGlobal' ,ssl=True, verify_ssl=True)
+
+
+        return jsonForInflux
+
+
+
 
 
     def check_consumer_conditions(self, options,host,port,DC):        
@@ -271,7 +309,7 @@ class RabbitMQAlert:
             spark_bearer_id = options["spark-bearer-id"]    
             print(spark_bearer_id)
         
-        text_tag = "[Queue_location:%s]" % (to_monitor_host)
+        text_tag = " [Rabbit_Server_location: %s] [Monitor_location: %s]" % (to_monitor_host,os.environ['LOCATION'])
         text_spark = ""
         if tags == True:
             text_spark = "%s %s" % (body, text_tag)
@@ -309,24 +347,17 @@ def monitorrabbit(host, port,DC,reports=False):
     
     if DC == 'RTP' and host == '198.19.254.159' :
         options = opt_resolver.setup_options_RTP()
-    if DC == 'RTP' and host == 'dcv-automation-amqp.svpod.dc-02.com' :
-        options = opt_resolver.setup_options_SNG()
-    if DC == 'RTP' and host == 'dcv-automation-amqp.svpod.dc-03.com' :
-        options = opt_resolver.setup_options_LON()
-        
     if DC == 'SNG' and host == '198.19.254.159' :
         options = opt_resolver.setup_options_SNG()
-    if DC == 'SNG' and host == 'dcv-automation-amqp.svpod.dc-01.com' :
-        options = opt_resolver.setup_options_RTP()
-    if DC == 'SNG' and host == 'dcv-automation-amqp.svpod.dc-03.com' :
-        options = opt_resolver.setup_options_LON()
-    
     if DC == 'LON' and host == '198.19.254.159' :
         options = opt_resolver.setup_options_LON()
-    if DC == 'LON' and host == 'dcv-automation-amqp.svpod.dc-01.com' :
-        options = opt_resolver.setup_options_RTP()
-    if DC == 'LON' and host == 'dcv-automation-amqp.svpod.dc-02.com' :
+ 
+    if host == 'dcv-automation-amqp.svpod.dc-02.com' :
         options = opt_resolver.setup_options_SNG()
+    if host == 'dcv-automation-amqp.svpod.dc-03.com' :
+        options = opt_resolver.setup_options_LON()
+    if host == 'dcv-automation-amqp.svpod.dc-01.com' :
+        options = opt_resolver.setup_options_RTP()
 
     #while True:
     for queue in options["queues"]:
@@ -343,7 +374,7 @@ def monitorrabbit(host, port,DC,reports=False):
                 or "spark-room-id" in queue_conditions \
                 or "spark-bearer-id" in queue_conditions :
             rabbitmq_alert.check_queue_conditions(options,host,port,DC)
-            rabbitmq_alert.createJsonForInflux(options,host,port,DC)
+            #rabbitmq_alert.createJsonForInflux(options,host,port,DC)
          
 
         # common checks for all queues
@@ -400,75 +431,32 @@ def main():
     opt_resolver = optionsresolver.OptionsResolver(log)
     options = opt_resolver.setup_options_RTP()
     
-    if location == "dcloud.rtp.sharedservices":
-        log.info("Location RTP recieved...")
-        print('RTP')
-        sharedservicesRTP = {"198.19.254.159" : 24002, "dcv-automation-amqp.svpod.dc-02.com" : 24002, "dcv-automation-amqp.svpod.dc-03.com" : 24002}
-        count = 1
-        reportcount = 0
-        while True:
-            for key, value in sharedservicesRTP.items():  
-                count = count+1
-                reportcount = reportcount+1
-                rabbitserversForRTP = {}
-                rabbitserversForRTP["host"] = key
-                rabbitserversForRTP["port"] = value
-                rabbitserversForRTP["DC"] = "RTP"
-                if reportcount == 4:
-                    reports = True
-                    reportcount = 0
-                else:
-                    reports = False
-                monitorrabbit(rabbitserversForRTP["host"], rabbitserversForRTP["port"],rabbitserversForRTP["DC"],reports=reports)
-            
-            time.sleep(options["check_rate"]) 
-            
-    if location == "dcloud.sng.sharedservices":
-        log.info("Location SNG recieved...")
-        print('SNG')
-        sharedservicesSNG = {"198.19.254.159" : 24002,"dcv-automation-amqp.svpod.dc-01.com" : 24002,"dcv-automation-amqp.svpod.dc-03.com" : 24002}
-        count = 1
-        reportcount = 0
-        while True:
-            for key, value in sharedservicesSNG.items(): 
-                count = count+1
-                reportcount = reportcount+1
-                rabbitserversForSNG = {}
-                rabbitserversForSNG["host"] = key
-                rabbitserversForSNG["port"] = value
-                rabbitserversForSNG["DC"] = "SNG"
-                if reportcount == 4:
-                    reports = True
-                    reportcount = 0
-                else:
-                    reports = False
-                monitorrabbit(rabbitserversForSNG["host"], rabbitserversForSNG["port"],rabbitserversForSNG["DC"],reports=reports)
-            
-            time.sleep(options["check_rate"])  
-    
-    if location == "dcloud.lon.sharedservices":
-        log.info("Location LON recieved...")
-        print('LON')
-        sharedservicesLON = {"198.19.254.159" : 24002,"dcv-automation-amqp.svpod.dc-01.com" : 24002,"dcv-automation-amqp.svpod.dc-02.com" : 24002}
-        count = 1
-        reportcount = 0
-        while True:
-            for key, value in sharedservicesLON.items(): 
-                count = count+1
-                reportcount = reportcount+1
-                rabbitserversForLON = {}
-                rabbitserversForLON["host"] = key
-                rabbitserversForLON["port"] = value
-                rabbitserversForLON["DC"] = "LON"
-                if reportcount == 4:
-                    reports = True
-                    reportcount = 0
-                else:
-                    reports = False
-                monitorrabbit(rabbitserversForLON["host"], rabbitserversForLON["port"],rabbitserversForLON["DC"],reports=reports)
-            
-            time.sleep(options["check_rate"]) 
 
+    rabbitServers={
+    "dcloud.test.sharedservices": {"dcv-automation-amqp.svpod.dc-01.com" : 24002,"dcv-automation-amqp.svpod.dc-02.com" : 24002, "dcv-automation-amqp.svpod.dc-03.com" : 24002},
+    "dcloud.rtp.sharedservices": {"198.19.254.159" : 24002,"dcv-automation-amqp.svpod.dc-02.com" : 24002, "dcv-automation-amqp.svpod.dc-03.com" : 24002},
+    "dcloud.sng.sharedservices": {"198.19.254.159" : 24002,"dcv-automation-amqp.svpod.dc-01.com" : 24002,"dcv-automation-amqp.svpod.dc-03.com" : 24002},
+    "dcloud.lon.sharedservices": {"198.19.254.159" : 24002,"dcv-automation-amqp.svpod.dc-01.com" : 24002,"dcv-automation-amqp.svpod.dc-02.com" : 24002}
+    }
+
+
+    log.info("Location received: " + str(location))
+    count = 1
+    reportcount = 0
+    while True:
+        for rabbitServer, rabbitServerPort in rabbitServers[location].items():
+            count = count+1
+            reportcount = reportcount+1
+            if reportcount == 4:
+                reports = True
+                reportcount = 0
+            else:
+                reports = False
+            monitorrabbit(rabbitServer, rabbitServerPort,location.split(".")[1].upper(),reports=reports)
+
+        time.sleep(options["check_rate"])
+
+   
 
 if __name__ == "__main__":
     main()
