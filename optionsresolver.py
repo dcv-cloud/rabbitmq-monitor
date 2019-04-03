@@ -24,7 +24,7 @@ class OptionsResolver:
         arguments.add_option("--vhost", dest="vhost", help="Name of the vhost to inspect", type="string")
         arguments.add_option("--queues", dest="queues", help="List of comma-separated queue names to inspect", type="string")
         arguments.add_option("--check-rate", dest="check_rate", help="Conditions check frequency, in seconds.", type="int")
-
+        arguments.add_option("--exchanges", dest="Exchanges", help="List of comma-seperated exchange names to inspect.", type="string")
         arguments.add_option("--ready-queue-size", dest="ready_queue_size", help="Size of Ready messages on the queue to alert as warning", type="int")
         arguments.add_option("--unacknowledged-queue-size", dest="unack_queue_size", help="Size of the Unacknowledged messages on the queue to alert as warning", type="int")
         arguments.add_option("--total-queue-size", dest="total_queue_size", help="Size of the Total messages on the queue to alert as warning", type="int")
@@ -64,7 +64,7 @@ class OptionsResolver:
         options["spark-room-id"] = cli_arguments.check_rate or config_file_options.get("spark", "spark-room-id")
         options["spark-bearer-id"] = cli_arguments.check_rate or config_file_options.get("spark", "spark-bearer-id")
         options["queues"] = cli_arguments.queues or config_file_options.get("Server", "queues")
-        options["exchanges"] = cli_arguments.check_rate or config_file_options.get("Server", "Exchanges")
+        options["exchanges"] = cli_arguments.Exchanges or config_file_options.get("Server", "Exchanges")
         options["queues"] = options["queues"].split(",")
         options["exchanges"] = options["exchanges"].split(",")
         print("________________________________________________")
@@ -88,7 +88,7 @@ class OptionsResolver:
         arguments.add_option("--vhost", dest="vhost", help="Name of the vhost to inspect", type="string")
         arguments.add_option("--queues", dest="queues", help="List of comma-separated queue names to inspect", type="string")
         arguments.add_option("--check-rate", dest="check_rate", help="Conditions check frequency, in seconds.", type="int")
-
+        arguments.add_option("--exchanges", dest="Exchanges", help="List of comma-seperated exchange names to inspect.", type="string")
         arguments.add_option("--ready-queue-size", dest="ready_queue_size", help="Size of Ready messages on the queue to alert as warning", type="int")
         arguments.add_option("--unacknowledged-queue-size", dest="unack_queue_size", help="Size of the Unacknowledged messages on the queue to alert as warning", type="int")
         arguments.add_option("--total-queue-size", dest="total_queue_size", help="Size of the Total messages on the queue to alert as warning", type="int")
@@ -128,7 +128,7 @@ class OptionsResolver:
         options["spark-room-id"] = cli_arguments.check_rate or config_file_options.get("spark", "spark-room-id")
         options["spark-bearer-id"] = cli_arguments.check_rate or config_file_options.get("spark", "spark-bearer-id")
         options["queues"] = cli_arguments.queues or config_file_options.get("Server", "queues")
-        options["exchanges"] = cli_arguments.check_rate or config_file_options.get("Server", "Exchanges")
+        options["exchanges"] = cli_arguments.Exchanges or config_file_options.get("Server", "Exchanges")
         options["queues"] = options["queues"].split(",")
         options["exchanges"] = options["exchanges"].split(",")
 
@@ -149,7 +149,7 @@ class OptionsResolver:
         arguments.add_option("--vhost", dest="vhost", help="Name of the vhost to inspect", type="string")
         arguments.add_option("--queues", dest="queues", help="List of comma-separated queue names to inspect", type="string")
         arguments.add_option("--check-rate", dest="check_rate", help="Conditions check frequency, in seconds.", type="int")
-
+        arguments.add_option("--exchanges", dest="Exchanges", help="List of comma-seperated exchange names to inspect.", type="string")
         arguments.add_option("--ready-queue-size", dest="ready_queue_size", help="Size of Ready messages on the queue to alert as warning", type="int")
         arguments.add_option("--unacknowledged-queue-size", dest="unack_queue_size", help="Size of the Unacknowledged messages on the queue to alert as warning", type="int")
         arguments.add_option("--total-queue-size", dest="total_queue_size", help="Size of the Total messages on the queue to alert as warning", type="int")
@@ -189,7 +189,7 @@ class OptionsResolver:
         options["spark-room-id"] = cli_arguments.check_rate or config_file_options.get("spark", "spark-room-id")
         options["spark-bearer-id"] = cli_arguments.check_rate or config_file_options.get("spark", "spark-bearer-id")
         options["queues"] = cli_arguments.queues or config_file_options.get("Server", "queues")
-        options["exchanges"] = cli_arguments.check_rate or config_file_options.get("Server", "Exchanges")
+        options["exchanges"] = cli_arguments.Exchanges or config_file_options.get("Server", "Exchanges")
         options["queues"] = options["queues"].split(",")
         options["exchanges"] = options["exchanges"].split(",")
 
