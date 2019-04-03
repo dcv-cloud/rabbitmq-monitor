@@ -4,7 +4,7 @@
 import optparse
 import ConfigParser
 import os.path
-import logger
+import logger as logger
 
 #CONFIG_FILE_PATH = r"/root/rabbitmqalert/config.ini"
 
