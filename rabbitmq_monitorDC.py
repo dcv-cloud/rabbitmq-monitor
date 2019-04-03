@@ -108,11 +108,11 @@ class RabbitMQAlert:
         if exchange!='default':
             c,q=self.get_bindings_for_exchange(data,exName=exchange)
             #print("Exchange " + str(exchange) + " has " + str(c) + " binding(s): " +str(q) )
-            self.send_notification(DC, options, "<b>[ Debug ]</b> [ Exchange: %s has %s  bindings %s ]" % (str(exchange), str(c), str(q)))
+            self.send_notification(DC, options, "<b>[ Debug - %s ]</b> [ Exchange: %s has %s  bindings %s ]" % (options['rabbitServerLocation'] ,str(exchange), str(c), str(q)))
             print""
         else:
             c,q=self.get_bindings_for_exchange(data)
-            self.send_notification(DC, options, "<b>[ Debug ]</b> [Exchange: Default has %s bindings %s ]" % (str(c),str(q)))
+            self.send_notification(DC, options, "<b>[ Debug - %s ]</b> [Exchange: Default has %s bindings %s ]" % (options['rabbitServerLocation'] ,str(c),str(q)))
             #print("Exchange Default  has "+ str(c) + " binding(s): " +str(q) )
             print""
 
@@ -124,7 +124,7 @@ class RabbitMQAlert:
         options["host"] = host
         options["port"] = port
         if host == "198.19.254.159" :
-            to_monitor_host = "local"
+            to_monitor_host = DC
         if host == "dcv-automation-amqp.svpod.dc-01.com" :
             to_monitor_host = "RTP"
         if host == "dcv-automation-amqp.svpod.dc-02.com" :
@@ -137,7 +137,7 @@ class RabbitMQAlert:
             jsonForInflux.append({"measurement":measurement,"tags":{"Monitor_location":DC,"Rabbitmq_server":to_monitor_host,"objectType":"queue","objectName":options["queue"]},"fields":{"msgReady": messages_ready,"msgUnack":messages_unacknowledged,"msgTotal":messages,"consumers":consumers}})
         except Exception as e:
             self.log.info('Error while reading the arguments...' )
-        self.send_notification(DC, options, "<b>[ Debug ]</b>  [ JsonforInflux: %s ]" % (jsonForInflux))
+        self.send_notification(DC, options, "<b>[ Debug - %s ]</b>  [ JsonforInflux: %s ]" % (to_monitor_host,jsonForInflux))
         influx.writeToInfluxDb(jsonForInflux,credsFile='/root/creds/creds.cfg',influxDb='influxGlobal',ssl=True, verify_ssl=True)
         print jsonForInflux
         return jsonForInflux
@@ -148,7 +148,7 @@ class RabbitMQAlert:
         options["host"] = host
         options["port"] = port
         if host == "198.19.254.159" :
-            to_monitor_host = "local"
+            to_monitor_host = DC
         if host == "dcv-automation-amqp.svpod.dc-01.com" :
             to_monitor_host = "RTP"
         if host == "dcv-automation-amqp.svpod.dc-02.com" :
@@ -163,13 +163,15 @@ class RabbitMQAlert:
                 jsonForInflux.append({"measurement":measurement,"tags":{"Monitor_location":DC,"Rabbitmq_server":to_monitor_host,"objectType":"exchange","objectName":options["exchanges"]},"fields":{"rateIn": rate_in,"rateOut":rate_out,"bindingTotal":binding_count,"binding":binding}})
             except Exception as e:
                 self.log.info('Error while reading the arguments...' )
-            self.send_notification(DC, options, "<b>[ Debug ]</b>  [ JsonforInflux: %s ]" % (jsonForInflux))
-            influx.writeToInfluxDb(jsonForInflux,credsFile='/root/creds/creds.cfg',influxDb='influxGlobal' ,ssl=True, verify_ssl=True)
-            print jsonForInflux
 
-        if len(bindings)==0:
+        if len(jsonForInflux)==0:
             jsonForInflux.append({"measurement":measurement,"tags":{"Monitor_location":DC,"Rabbitmq_server":to_monitor_host,"objectType":"exchange","objectName":options["exchanges"]},"fields":{"rateIn": rate_in,"rateOut":rate_out,"bindingTotal":0,"binding":"-"}})
             influx.writeToInfluxDb(jsonForInflux,credsFile='/root/creds/creds.cfg',influxDb='influxGlobal' ,ssl=True, verify_ssl=True)
+
+        self.send_notification(DC, options, "<b>[ Debug - %s ]</b>  [ JsonforInflux: %s ]" % (to_monitor_host,jsonForInflux))
+        influx.writeToInfluxDb(jsonForInflux,credsFile='/root/creds/creds.cfg',influxDb='influxGlobal' ,ssl=True, verify_ssl=True)
+        print jsonForInflux
+
 
 
         return jsonForInflux
@@ -272,7 +274,7 @@ class RabbitMQAlert:
 
         if options["host"] == "198.19.254.159" :
             print(options["host"]) 
-            to_monitor_host = "local"
+            to_monitor_host = DC
             print(to_monitor_host)
             
         if options["host"] == "dcv-automation-amqp.svpod.dc-01.com" :
@@ -424,7 +426,7 @@ def monitorrabbit(host, port,DC,reports=False):
                     output=output + "<br/> -  Consumers_min: " + line.split("=")[1][:-1]
                 if "queue_consumers_connected_max" in line:
                     output=output + "<br/> -  Consumers_max: " + line.split("=")[1][:-1]
-            rabbitmq_alert.send_notification(DC, options, "<b>[ Config Report - %s ]</b>  %s <br/>" % (options['rabbitServerLocation'],output),tags=False)
+            rabbitmq_alert.send_notification(DC, options, "<b>[ Config Report - %s ]</b>  %s <br/>" % (file_dc,output),tags=False)
 
      
 
@@ -453,7 +455,7 @@ def main():
         for rabbitServer, rabbitServerPort in rabbitServers[location].items():
             count = count+1
             reportcount = reportcount+1
-            if reportcount >= 2:
+            if reportcount >= 60:
                 reports = True
                 reportcount = 0
             else:
