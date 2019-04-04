@@ -20,8 +20,10 @@ influxPath=r'/root/scripts/core/'
 sys.path.append(influxPath)
 import influx
 
-
+#Global Variables
+jsonForInflux=[]
 measurementTasks='rabbitmq_monitor'
+
 
 class RabbitMQAlert:
     def __init__(self, log):
@@ -57,7 +59,7 @@ class RabbitMQAlert:
 
         if ready_size is not None and messages_ready > ready_size:
             print("In send_notifications")
-            self.send_notification(DC, options, "- <b>[ Alert - %s  ]</b> %s [ Condition: messages_ready = %d > %d ]" % (options['rabbitServerLocation'],queue, messages_ready, ready_size))
+            self.send_notification(DC, options, "- <b>[ Alert - Queue -%s  ]</b> %s [ Condition: messages_ready = %d > %d ]" % (options['rabbitServerLocation'],queue, messages_ready, ready_size))
             print("send_notifications called")
         if unack_size is not None and messages_unacknowledged > unack_size:
             self.send_notification(DC, options, "- <b>[ Alert - Queue - %s  ]</b> %s [ Condition: messages_unacknowledged = %d > %d ]" % (options['rabbitServerLocation'],queue, messages_unacknowledged, unack_size))
@@ -108,11 +110,11 @@ class RabbitMQAlert:
         if exchange!='default':
             c,q=self.get_bindings_for_exchange(data,exName=exchange)
             #print("Exchange " + str(exchange) + " has " + str(c) + " binding(s): " +str(q) )
-            self.send_notification(DC, options, "<b>[ Debug - %s ]</b> [ Exchange: %s has %s  bindings %s ]" % (options['rabbitServerLocation'] ,str(exchange), str(c), str(q)))
+            #self.send_notification(DC, options, "<b>[ Debug - %s ]</b> [ Exchange: %s has %s  bindings %s ]" % (options['rabbitServerLocation'] ,str(exchange), str(c), str(q)))
             print""
         else:
             c,q=self.get_bindings_for_exchange(data)
-            self.send_notification(DC, options, "<b>[ Debug - %s ]</b> [Exchange: Default has %s bindings %s ]" % (options['rabbitServerLocation'] ,str(c),str(q)))
+            #self.send_notification(DC, options, "<b>[ Debug - %s ]</b> [Exchange: Default has %s bindings %s ]" % (options['rabbitServerLocation'] ,str(c),str(q)))
             #print("Exchange Default  has "+ str(c) + " binding(s): " +str(q) )
             print""
 
@@ -121,6 +123,7 @@ class RabbitMQAlert:
         
 
     def createJsonForInfluxQueue(self,messages_ready,messages_unacknowledged,messages,consumers,options,host,port,DC,measurement=measurementTasks):
+        global jsonForInflux
         options["host"] = host
         options["port"] = port
         if host == "198.19.254.159" :
@@ -131,20 +134,20 @@ class RabbitMQAlert:
             to_monitor_host = "SNG"
         if host == "dcv-automation-amqp.svpod.dc-03.com" :
             to_monitor_host = "LON"
-        jsonForInflux=[]
         print("creating the json")
         try:
             jsonForInflux.append({"measurement":measurement,"tags":{"Monitor_location":DC,"Rabbitmq_server":to_monitor_host,"objectType":"queue","objectName":options["queue"]},"fields":{"msgReady": messages_ready,"msgUnack":messages_unacknowledged,"msgTotal":messages,"consumers":consumers}})
         except Exception as e:
             self.log.info('Error while reading the arguments...' )
-        self.send_notification(DC, options, "<b>[ Debug - %s ]</b>  [ JsonforInflux: %s ]" % (to_monitor_host,jsonForInflux))
-        influx.writeToInfluxDb(jsonForInflux,credsFile='/root/creds/creds.cfg',influxDb='influxGlobal',ssl=True, verify_ssl=True)
+        #self.send_notification(DC, options, "<b>[ Debug - %s ]</b>  [ JsonforInflux: %s ]" % (to_monitor_host,jsonForInflux))
+        #influx.writeToInfluxDb(jsonForInflux,credsFile='/root/creds/creds.cfg',influxDb='influxGlobal',ssl=True, verify_ssl=True)
         print jsonForInflux
         return jsonForInflux
 
 
 
     def createJsonForInfluxExchange(self,rate_in,rate_out,binding_count,bindings,options,host,port,DC,measurement=measurementTasks):
+        global jsonForInflux
         options["host"] = host
         options["port"] = port
         if host == "198.19.254.159" :
@@ -155,7 +158,6 @@ class RabbitMQAlert:
             to_monitor_host = "SNG"
         if host == "dcv-automation-amqp.svpod.dc-03.com" :
             to_monitor_host = "LON"
-        jsonForInflux=[]
         print("creating the json")
 
         for binding in bindings:
@@ -168,8 +170,8 @@ class RabbitMQAlert:
             jsonForInflux.append({"measurement":measurement,"tags":{"Monitor_location":DC,"Rabbitmq_server":to_monitor_host,"objectType":"exchange","objectName":options["exchanges"]},"fields":{"rateIn": rate_in,"rateOut":rate_out,"bindingTotal":0,"binding":"-"}})
             influx.writeToInfluxDb(jsonForInflux,credsFile='/root/creds/creds.cfg',influxDb='influxGlobal' ,ssl=True, verify_ssl=True)
 
-        self.send_notification(DC, options, "<b>[ Debug - %s ]</b>  [ JsonforInflux: %s ]" % (to_monitor_host,jsonForInflux))
-        influx.writeToInfluxDb(jsonForInflux,credsFile='/root/creds/creds.cfg',influxDb='influxGlobal' ,ssl=True, verify_ssl=True)
+        #self.send_notification(DC, options, "<b>[ Debug - %s ]</b>  [ JsonforInflux: %s ]" % (to_monitor_host,jsonForInflux))
+        #influx.writeToInfluxDb(jsonForInflux,credsFile='/root/creds/creds.cfg',influxDb='influxGlobal' ,ssl=True, verify_ssl=True)
         print jsonForInflux
 
 
@@ -336,6 +338,7 @@ class RabbitMQAlert:
         data = res.read()
         
 def monitorrabbit(host, port,DC,reports=False):
+
     print('DCDCDCDCDCDCDCDCDCDCDCDC is')
     print(DC) 
     print("HOSTHOSTHOSTHOST is")
@@ -344,6 +347,13 @@ def monitorrabbit(host, port,DC,reports=False):
     log = logger.Logger()
     rabbitmq_alert = RabbitMQAlert(log)
 
+    #Initialize
+    global jsonForInflux
+    jsonForInflux=[]
+
+    #######################
+    # Options
+    #######################
     opt_resolver = optionsresolver.OptionsResolver(log)
     #options = opt_resolver.setup_options()
     
@@ -367,6 +377,9 @@ def monitorrabbit(host, port,DC,reports=False):
         options = opt_resolver.setup_options_RTP()
         options['rabbitServerLocation']="RTP"
 
+    ####################
+    # Queues
+    ####################
     #while True:
     for queue in options["queues"]:
         options["queue"] = queue
@@ -384,16 +397,21 @@ def monitorrabbit(host, port,DC,reports=False):
             rabbitmq_alert.check_queue_conditions(options,host,port,DC)
             #rabbitmq_alert.createJsonForInflux(options,host,port,DC)
          
+    ####################
+    # Nodes
+    ####################
+    # common checks for all queues
+    default_conditions = options["default_conditions"]
+    if "nodes_running" in default_conditions:
+        rabbitmq_alert.check_node_conditions(options,host,port,DC)
+    if "open_connections" in default_conditions:
+        rabbitmq_alert.check_connection_conditions(options,host,port,DC)
+    if "consumers_connected" in default_conditions:
+        rabbitmq_alert.check_consumer_conditions(options,host,port,DC)
 
-        # common checks for all queues
-        default_conditions = options["default_conditions"]
-        if "nodes_running" in default_conditions:
-            rabbitmq_alert.check_node_conditions(options,host,port,DC)
-        if "open_connections" in default_conditions:
-            rabbitmq_alert.check_connection_conditions(options,host,port,DC)
-        if "consumers_connected" in default_conditions:
-            rabbitmq_alert.check_consumer_conditions(options,host,port,DC)
-     
+    ####################
+    # Exchanges
+    ####################
     for exchange in options["exchanges"]:
         options["queue"] = queue
         options["exchanges"] = exchange
@@ -406,6 +424,17 @@ def monitorrabbit(host, port,DC,reports=False):
                 or "bindings" in exchange_conditions :
             rabbitmq_alert.get_data_for_exchanges(options, host, port, DC)
 
+
+    ######################
+    # Dashboard (influxDB)
+    ######################
+    rabbitmq_alert.send_notification(DC, options, "<b>[ Debug - Influx - %s ]</b>  [ Sending...  ]" % (options['rabbitServerLocation']))
+    influx.writeToInfluxDb(jsonForInflux,credsFile='/root/creds/creds.cfg',influxDb='influxGlobal',ssl=True, verify_ssl=True)
+    #rabbitmq_alert.send_notification(DC, options, "<b>[ Debug - Influx - %s ]</b>  [ JsonforInflux: %s ]" % (options['rabbitServerLocation'],jsonForInflux))
+
+    ####################
+    # Reports
+    ####################
     if reports == True:
         CONFIG_FILE_PATHS = []
         CONFIG_FILE_PATHS = ['/root/rabbitmqalert/config_RTP.ini','/root/rabbitmqalert/config_SNG.ini','/root/rabbitmqalert/config_LON.ini']
