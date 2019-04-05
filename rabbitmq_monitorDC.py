@@ -133,7 +133,8 @@ class RabbitMQAlert:
             return
         
         if "message_stats" not in data:
-            self.log.info("No message stats found for this exchange:")
+            #self.log.info("No message stats found for this exchange:")
+            return
         else:
             messages_rate_in = data.get("message_stats",{}).get("publish_in_details").get("rate")
             messages_rate_out = data.get("message_stats",{}).get("publish_out_details").get("rate")
@@ -197,12 +198,7 @@ class RabbitMQAlert:
         #influx.writeToInfluxDb(jsonForInflux,credsFile='/root/creds/creds.cfg',influxDb='influxGlobal' ,ssl=True, verify_ssl=True)
         print jsonForInflux
 
-
-
         return jsonForInflux
-
-
-
 
 
     def check_consumer_conditions(self, options,host,port,DC):        
@@ -344,10 +340,10 @@ class RabbitMQAlert:
             text_spark = "%s" % (body)
         print(text_spark)
         #text = "%s [Location: %s] [Monitor: %s]" % (body, DC, to_monitor_host)
-        self.log.info("Text for send_notifications--  \"{0}\"".format(text_spark))
+        #self.log.info("Text for send_notifications--  \"{0}\"".format(text_spark))
         spark_room_id = options["spark-room-id"]
         spark_bearer_id = options["spark-bearer-id"]
-        self.log.info("Sending Spark notification: \"{0}\"".format(body))
+        #self.log.info("Sending Spark notification: \"{0}\"".format(body))
         conn = httplib.HTTPSConnection("api.ciscospark.com")
         
         payload = "{\n\t\"roomId\": \"%s\",\n\t\"markdown\": \"%s\"\n}\n" % (spark_room_id, text_spark)
@@ -407,8 +403,8 @@ def monitorrabbit(host, port,DC,reports=False):
     for queue in options["queues"]:
         options["queue"] = queue
         queue_conditions = options["conditions"][queue]
-        log.info("Following are queue_conditions:")
-        log.info(queue_conditions)
+        #log.info("Following are queue_conditions:")
+        #log.info(queue_conditions)
 
         if "ready_queue_size" in queue_conditions \
                 or "unack_queue_size" in queue_conditions \
@@ -439,8 +435,8 @@ def monitorrabbit(host, port,DC,reports=False):
         options["queue"] = queue
         options["exchanges"] = exchange
         exchange_conditions = options["exchangeconditions"][exchange]
-        log.info("Following are exchange_conditions:")
-        log.info(exchange_conditions)
+        #log.info("Following are exchange_conditions:")
+        #log.info(exchange_conditions)
         
         if "message_rate_in" in exchange_conditions \
                 or "message_rate_out" in exchange_conditions \
@@ -486,8 +482,8 @@ def main():
     log = logger.Logger()
     log.info("Starting application...")
     location=os.environ['LOCATION']
-    log.info("Location recieved from controller!!")
-    print(location)
+    #log.info("Location recieved from controller!!")
+    #print(location)
     opt_resolver = optionsresolver.OptionsResolver(log)
     options = opt_resolver.setup_options_RTP()
     
