@@ -120,6 +120,30 @@ class RabbitMQAlert:
 
         if influxDb:
             self.createJsonForInfluxExchange(0,0,c,q,options,host,port,DC)
+
+    def check_message_rates_for_exchanges(self, options, host, port, DC):
+        options["host"] = host
+        options["port"] = port
+        exchange = options["exchanges"]
+        print(exchange)
+        exchangeurl = "http://%s:%s/api/exchanges/%s/%s" % (options["host"], options["port"], options["vhost"],exchange)
+        data = self.send_request(DC,exchangeurl,options)
+        print(data)
+        if data is None:
+            return
+        
+        if "message_stats" not in data:
+            self.log.info("No message stats found for this exchange:")
+        else:
+            messages_rate_in = data.get("message_stats",{}).get("publish_in_details").get("rate")
+            messages_rate_out = data.get("message_stats",{}).get("publish_out_details").get("rate")
+            exchange_conditions = options["exchangeconditions"][exchange]
+            message_in=exchange_conditions.get("message_rate_in")
+            message_out=exchange_conditions.get("message_rate_out")
+            if messages_rate_in is not None and messages_rate_in > message_in:
+                self.send_notification(DC, options, "<b>[Exchange Alert]</b> %s [ Exchange Condition: Messages rate in = %d < %d ]" % (exchange, messages_rate_in, message_in))
+            if messages_rate_out is not None and messages_rate_out > message_out:
+                self.send_notification(DC, options, "<b>[Exchange Alert]</b> %s [ Exchange Condition: Messages rate out = %d < %d ]" % (exchange, messages_rate_out, message_out))
         
 
     def createJsonForInfluxQueue(self,messages_ready,messages_unacknowledged,messages,consumers,options,host,port,DC,measurement=measurementTasks):
@@ -143,7 +167,6 @@ class RabbitMQAlert:
         #influx.writeToInfluxDb(jsonForInflux,credsFile='/root/creds/creds.cfg',influxDb='influxGlobal',ssl=True, verify_ssl=True)
         print jsonForInflux
         return jsonForInflux
-
 
 
     def createJsonForInfluxExchange(self,rate_in,rate_out,binding_count,bindings,options,host,port,DC,measurement=measurementTasks):
@@ -423,7 +446,7 @@ def monitorrabbit(host, port,DC,reports=False):
                 or "message_rate_out" in exchange_conditions \
                 or "bindings" in exchange_conditions :
             rabbitmq_alert.get_data_for_exchanges(options, host, port, DC)
-
+	    rabbitmq_alert.check_message_rates_for_exchanges(options, host, port, DC)
 
     ######################
     # Dashboard (influxDB)
