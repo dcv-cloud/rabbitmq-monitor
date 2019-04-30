@@ -127,6 +127,7 @@ class RabbitMQAlert:
         exchange = options["exchanges"]
         print(exchange)
         exchangeurl = "http://%s:%s/api/exchanges/%s/%s" % (options["host"], options["port"], options["vhost"],exchange)
+        self.log.info(exchangeurl)
         data = self.send_request(DC,exchangeurl,options)
         print(data)
         if data is None:
@@ -136,15 +137,33 @@ class RabbitMQAlert:
             #self.log.info("No message stats found for this exchange:")
             return
         else:
-            messages_rate_in = data.get("message_stats",{}).get("publish_in_details").get("rate")
-            messages_rate_out = data.get("message_stats",{}).get("publish_out_details").get("rate")
+            msg_stats=data.get("message_stats",{})
+            if msg_stats is None:
+                self.log.info("Exchange Rates: message_stats returned None")
+                return 
+            
             exchange_conditions = options["exchangeconditions"][exchange]
-            message_in=exchange_conditions.get("message_rate_in")
-            message_out=exchange_conditions.get("message_rate_out")
-            if messages_rate_in is not None and messages_rate_in > message_in:
-                self.send_notification(DC, options, "<b>[Exchange Alert]</b> %s [ Exchange Condition: Messages rate in = %d < %d ]" % (exchange, messages_rate_in, message_in))
-            if messages_rate_out is not None and messages_rate_out > message_out:
-                self.send_notification(DC, options, "<b>[Exchange Alert]</b> %s [ Exchange Condition: Messages rate out = %d < %d ]" % (exchange, messages_rate_out, message_out))
+            publish_in = data.get("message_stats",{}).get("publish_in_details")
+            self.log.info("publish in")
+            self.log.info(publish_in)
+            self.log.info("publish in")
+            if publish_in is not None:
+                messages_rate_in = data.get("message_stats",{}).get("publish_in_details").get("rate")
+                message_in=exchange_conditions.get("message_rate_in") 
+           	if messages_rate_in is not None and messages_rate_in > message_in:
+                	self.send_notification(DC, options, "<b>[Exchange Alert]</b> %s [ Exchange Condition: Messages rate in = %d < %d ]" % (exchange, messages_rate_in, message_in))
+  
+                
+            publish_out = data.get("message_stats",{}).get("publish_out_details")
+            self.log.info("publish out")
+            self.log.info(publish_out)
+            self.log.info("publish out")
+            if publish_out is not None:
+                messages_rate_out = data.get("message_stats",{}).get("publish_out_details").get("rate")
+                message_out=exchange_conditions.get("message_rate_out")
+
+	        if messages_rate_out is not None and messages_rate_out > message_out:
+        		self.send_notification(DC, options, "<b>[Exchange Alert]</b> %s [ Exchange Condition: Messages rate out = %d < %d ]" % (exchange, messages_rate_out, message_out))
         
 
     def createJsonForInfluxQueue(self,messages_ready,messages_unacknowledged,messages,consumers,options,host,port,DC,measurement=measurementTasks):
