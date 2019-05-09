@@ -6,9 +6,6 @@ import ConfigParser
 import os.path
 import logger as logger
 
-#CONFIG_FILE_PATH = r"/root/rabbitmqalert/config.ini"
-
-
 class OptionsResolver:
     def __init__(self, logger):
         self.log = logger
@@ -17,8 +14,6 @@ class OptionsResolver:
         CONFIG_FILE_PATH = r"/root/rabbitmqalert/config_RTP.ini"
         arguments = optparse.OptionParser()
         arguments.add_option("-c", "--config-file", dest="config_file", help="Path of the configuration file", type="string")
-        #arguments.add_option("--host", dest="host", help="RabbitMQ API address", type="string")
-        #arguments.add_option("--port", dest="port", help="RabbitMQ API port", type="string")
         arguments.add_option("--username", dest="username", help="RabbitMQ API username", type="string")
         arguments.add_option("--password", dest="password", help="RabbitMQ API password", type="string")
         arguments.add_option("--vhost", dest="vhost", help="Name of the vhost to inspect", type="string")
@@ -29,7 +24,6 @@ class OptionsResolver:
         arguments.add_option("--unacknowledged-queue-size", dest="unack_queue_size", help="Size of the Unacknowledged messages on the queue to alert as warning", type="int")
         arguments.add_option("--total-queue-size", dest="total_queue_size", help="Size of the Total messages on the queue to alert as warning", type="int")
         arguments.add_option("--consumers-connected", dest="consumers_connected", help="The number of consumers that should be connected", type="int")
-        #arguments.add_option("--queue-consumers-connected", dest="queue_consumers_connected",help="The number of consumers that should be checked",type="int")
         arguments.add_option("--queue-consumers-connected_min", dest="queue_consumers_connected_min",help="The number of consumers that should be less than the given value",type="int")
         arguments.add_option("--queue-consumers-connected_max", dest="queue_consumers_connected_max",help="The number of consumers that should be greater than the given value",type="int")
         arguments.add_option("--open-connections", dest="open_connections", help="The number of open connections", type="int")
@@ -37,7 +31,7 @@ class OptionsResolver:
         arguments.add_option("--node-memory-used", dest="node_memory_used", help="Memory used by each node in MBs", type="int")
         arguments.add_option("--publish-in",dest="message_rate_in",help="The size for messages published-in to alert as warning",type="int")
         arguments.add_option("--publish-out",dest="message_rate_out",help="The size for messages published-out to alert as warning",type="int")
-        arguments.add_option("--bindings",dest="bindings",help="The size of bindings to alert as warning",type="int")
+        arguments.add_option("--bindings",dest="bindings",help="The size of bindings to alert as warning",type="string")
         arguments.add_option("--spark-bot-id", dest="spark_bot_id", help="Spark bot id", type="string")
         arguments.add_option("--spark-bearer-id", dest="spark_bearer-id", help="Spark bearer id", type="string")
         cli_arguments = arguments.parse_args()[0]
@@ -67,9 +61,6 @@ class OptionsResolver:
         options["exchanges"] = cli_arguments.Exchanges or config_file_options.get("Server", "Exchanges")
         options["queues"] = options["queues"].split(",")
         options["exchanges"] = options["exchanges"].split(",")
-        print("________________________________________________")
-        print(options["exchanges"])
-        print("__________________________________________________")
         # get queue specific condition values if any, else construct from the generic one
         conditions = OptionsResolver.construct_conditions(options, cli_arguments, config_file_options)
         exchangeconditions = OptionsResolver.construct_exchangeconditions(options, cli_arguments, config_file_options)
@@ -81,8 +72,6 @@ class OptionsResolver:
         CONFIG_FILE_PATH = r"/root/rabbitmqalert/config_SNG.ini"
         arguments = optparse.OptionParser()
         arguments.add_option("-c", "--config-file", dest="config_file", help="Path of the configuration file", type="string")
-        #arguments.add_option("--host", dest="host", help="RabbitMQ API address", type="string")
-        #arguments.add_option("--port", dest="port", help="RabbitMQ API port", type="string")
         arguments.add_option("--username", dest="username", help="RabbitMQ API username", type="string")
         arguments.add_option("--password", dest="password", help="RabbitMQ API password", type="string")
         arguments.add_option("--vhost", dest="vhost", help="Name of the vhost to inspect", type="string")
@@ -93,7 +82,6 @@ class OptionsResolver:
         arguments.add_option("--unacknowledged-queue-size", dest="unack_queue_size", help="Size of the Unacknowledged messages on the queue to alert as warning", type="int")
         arguments.add_option("--total-queue-size", dest="total_queue_size", help="Size of the Total messages on the queue to alert as warning", type="int")
         arguments.add_option("--consumers-connected", dest="consumers_connected", help="The number of consumers that should be connected", type="int")
-        #arguments.add_option("--queue-consumers-connected", dest="queue_consumers_connected",help="The number of consumers that should be checked",type="int")
         arguments.add_option("--queue-consumers-connected_min", dest="queue_consumers_connected_min",help="The number of consumers that should be less than the given value",type="int")
         arguments.add_option("--queue-consumers-connected_max", dest="queue_consumers_connected_max",help="The number of consumers that should be greater than the given value",type="int")
         arguments.add_option("--open-connections", dest="open_connections", help="The number of open connections", type="int")
@@ -101,7 +89,7 @@ class OptionsResolver:
         arguments.add_option("--node-memory-used", dest="node_memory_used", help="Memory used by each node in MBs", type="int")
         arguments.add_option("--publish-in",dest="message_rate_in",help="The size for messages published-in to alert as warning",type="int")
         arguments.add_option("--publish-out",dest="message_rate_out",help="The size for messages published-out to alert as warning",type="int")
-        arguments.add_option("--bindings",dest="bindings",help="The size of bindings to alert as warning",type="int")
+        arguments.add_option("--bindings",dest="bindings",help="List of comma-separated bindings to inspect",type="string")
         arguments.add_option("--spark-bot-id", dest="spark_bot_id", help="Spark bot id", type="string")
         arguments.add_option("--spark-bearer-id", dest="spark_bearer_id", help="Spark bearer id", type="string")
         cli_arguments = arguments.parse_args()[0]
@@ -142,8 +130,6 @@ class OptionsResolver:
         CONFIG_FILE_PATH = r"/root/rabbitmqalert/config_LON.ini"
         arguments = optparse.OptionParser()
         arguments.add_option("-c", "--config-file", dest="config_file", help="Path of the configuration file", type="string")
-        #arguments.add_option("--host", dest="host", help="RabbitMQ API address", type="string")
-        #arguments.add_option("--port", dest="port", help="RabbitMQ API port", type="string")
         arguments.add_option("--username", dest="username", help="RabbitMQ API username", type="string")
         arguments.add_option("--password", dest="password", help="RabbitMQ API password", type="string")
         arguments.add_option("--vhost", dest="vhost", help="Name of the vhost to inspect", type="string")
@@ -154,7 +140,6 @@ class OptionsResolver:
         arguments.add_option("--unacknowledged-queue-size", dest="unack_queue_size", help="Size of the Unacknowledged messages on the queue to alert as warning", type="int")
         arguments.add_option("--total-queue-size", dest="total_queue_size", help="Size of the Total messages on the queue to alert as warning", type="int")
         arguments.add_option("--consumers-connected", dest="consumers_connected", help="The number of consumers that should be connected", type="int")
-        #arguments.add_option("--queue-consumers-connected", dest="queue_consumers_connected",help="The number of consumers that should be checked",type="int")
         arguments.add_option("--queue-consumers-connected_min", dest="queue_consumers_connected_min",help="The number of consumers that should be less than the given value",type="int")
         arguments.add_option("--queue-consumers-connected_max", dest="queue_consumers_connected_max",help="The number of consumers that should be greater than the given value",type="int")
         arguments.add_option("--open-connections", dest="open_connections", help="The number of open connections", type="int")
@@ -162,7 +147,7 @@ class OptionsResolver:
         arguments.add_option("--node-memory-used", dest="node_memory_used", help="Memory used by each node in MBs", type="int")
         arguments.add_option("--publish-in",dest="message_rate_in",help="The size for messages published-in to alert as warning",type="int")
         arguments.add_option("--publish-out",dest="message_rate_out",help="The size for messages published-out to alert as warning",type="int")
-        arguments.add_option("--bindings",dest="bindings",help="The size of bindings to alert as warning",type="int")
+        arguments.add_option("--bindings",dest="bindings",help="List of comma-separated bindings to inspect",type="string")
         arguments.add_option("--spark-bot-id", dest="spark_bot_id", help="Spark bot id", type="string")
         arguments.add_option("--spark-bearer-id", dest="spark_bearer_id", help="Spark bearer id", type="string")
         cli_arguments = arguments.parse_args()[0]
@@ -217,9 +202,11 @@ class OptionsResolver:
                 exchangeconditions[key] = default_conditions[key]
                 
     @staticmethod 
-    def construct_str_option_exchange(cli_arguments, config_file_options, exchangeconditions, section_key, key, default_conditions=None):
+    def construct_str_option_exchange(cli_arguments, config_file_options, exchangeconditions, exchange_conditions_section_name, key, default_conditions=None):
         try:
-            exchangeconditions[key] = getattr(cli_arguments, key) or config_file_options.get(section_key, key)
+            exchangeconditions[key] = cli_arguments.bindings or config_file_options.get(exchange_conditions_section_name, key)
+            log.info("check exchange key")
+            log.info(exchangeconditions[key])
         except:
             if default_conditions is not None and key in default_conditions:
                 exchangeconditions[key] = default_conditions[key]
@@ -250,8 +237,6 @@ class OptionsResolver:
                 queue_conditions_section_name = "Conditions:" + queue
                 queue_conditions = dict()
                 conditions[queue] = queue_conditions
-                print(conditions[queue])
-
                 for key in ("ready_queue_size", "unack_queue_size", "total_queue_size", "queue_consumers_connected_min", "queue_consumers_connected_max","spark-room-id","spark-bearer-id"):
                     OptionsResolver.construct_int_option(cli_arguments, config_file_options, queue_conditions, queue_conditions_section_name, key, default_conditions)
                 for key in ("spark-room-id","spark-bearer-id"):   
@@ -265,9 +250,9 @@ class OptionsResolver:
 
         # get the generic condition values from the "[ExchangeConditions]" section
         default_conditions = dict()  
-        for key in ("message_rate_in", "message_rate_out", "bindings"):
+        for key in ("message_rate_in", "message_rate_out", "bindings_exchange"):
             OptionsResolver.construct_int_option_exchange(cli_arguments, config_file_options, default_conditions, "ExchangeConditions", key)
-        for key in ("spark-room-id","spark-bearer-id"):   
+        for key in ("bindings_exchange","spark-room-id","spark-bearer-id"):   
             OptionsResolver.construct_str_option_exchange(cli_arguments, config_file_options, default_conditions, "ExchangeConditions", key)
 
         # check if queue specific ExchangeCondition sections exist, if not use the generic conditions
@@ -276,23 +261,20 @@ class OptionsResolver:
                 exchange_conditions_section_name = "ExchangeConditions:" + exchange
                 exchange_conditions = dict()
                 exchangeconditions[exchange] = exchange_conditions
-                for key in ("message_rate_in", "message_rate_out", "bindings"):
+                for key in ("message_rate_in", "message_rate_out", "bindings_exchange"):
                     OptionsResolver.construct_int_option_exchange(cli_arguments, config_file_options, exchange_conditions, exchange_conditions_section_name, key, default_conditions)
-                for key in ("spark-room-id","spark-bearer-id") :   
+                for key in ("bindings_exchange", "spark-room-id", "spark-bearer-id"):
+		    print(key)  
                     OptionsResolver.construct_str_option_exchange(cli_arguments, config_file_options, exchange_conditions, exchange_conditions_section_name, key, default_conditions)
                     
         return {"exchangeconditions": exchangeconditions, "default_conditions": default_conditions}
     
 def main():
     log = logger.Logger()
-    log.info("Starting application...")
     OR = OptionsResolver(log)
     options_RTP=OR.setup_options_RTP()
     options_SNG=OR.setup_options_SNG()
     options_LON=OR.setup_options_LON()
-    print(options_RTP)
-    print(options_SNG)
-    print(options_LON)
 
 if __name__ == "__main__":
     main()

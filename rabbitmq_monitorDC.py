@@ -53,14 +53,10 @@ class RabbitMQAlert:
         queue = options["queue"]
         queue_conditions = options["conditions"][queue]
         spark_room_id = queue_conditions.get("spark-room-id")
-        print(spark_room_id)
         spark_bearer_id = queue_conditions.get("spark-bearer-id")
-        print(spark_bearer_id)
 
         if ready_size is not None and messages_ready > ready_size:
-            print("In send_notifications")
             self.send_notification(DC, options, "- <b>[ Alert - Queue -%s  ]</b> %s [ Condition: messages_ready = %d > %d ]" % (options['rabbitServerLocation'],queue, messages_ready, ready_size))
-            print("send_notifications called")
         if unack_size is not None and messages_unacknowledged > unack_size:
             self.send_notification(DC, options, "- <b>[ Alert - Queue - %s  ]</b> %s [ Condition: messages_unacknowledged = %d > %d ]" % (options['rabbitServerLocation'],queue, messages_unacknowledged, unack_size))
 
@@ -75,7 +71,6 @@ class RabbitMQAlert:
         if influxDb:
             self.createJsonForInfluxQueue(messages_ready,messages_unacknowledged,messages,consumers,options,host,port,DC)
 
-
     def get_bindings_for_exchange(self,data , exName='',include_vpods=False):
         out=[]
         for item in data:
@@ -88,30 +83,32 @@ class RabbitMQAlert:
                              out.append(item['destination'])
         return len(out), out 
 
-
-
     def get_data_for_exchanges(self, options, host, port, DC, influxDb=True):
         options["host"] = host
         options["port"] = port
         queue = options["queue"]
         exchange = options["exchanges"]
+        exchange_conditions = options["exchangeconditions"][exchange]
         exchangeurl = "http://%s:%s/api/bindings/%s" % (options["host"], options["port"], options["vhost"])
-        print(exchangeurl)
     
         data = self.send_request(DC,exchangeurl,options)
         if data is None:
             return
-        
-        print("DATA...................................................................")
-        print(data)
-        print("DATA...................................................................")
-
 
         if exchange!='default':
             c,q=self.get_bindings_for_exchange(data,exName=exchange)
-            #print("Exchange " + str(exchange) + " has " + str(c) + " binding(s): " +str(q) )
             #self.send_notification(DC, options, "<b>[ Debug - %s ]</b> [ Exchange: %s has %s  bindings %s ]" % (options['rabbitServerLocation'] ,str(exchange), str(c), str(q)))
-            print""
+	    print""
+            bindings_exchange = exchange_conditions.get("bindings_exchange")
+            self.log.info("Check for bindings_exchange")
+            self.log.info(bindings_exchange)
+            bindings_exchange = bindings_exchange.split(",")
+            for binding in bindings_exchange: 
+                if binding in str(q):
+                    pass 
+                else: 
+                    self.send_notification(DC,options, "<b>[ Debug - %s]</b> [Exchange: %s doesn't has this bindings %s ]" % (options['rabbitServerLocation'],str(exchange),binding))
+
         else:
             c,q=self.get_bindings_for_exchange(data)
             #self.send_notification(DC, options, "<b>[ Debug - %s ]</b> [Exchange: Default has %s bindings %s ]" % (options['rabbitServerLocation'] ,str(c),str(q)))
@@ -125,11 +122,9 @@ class RabbitMQAlert:
         options["host"] = host
         options["port"] = port
         exchange = options["exchanges"]
-        print(exchange)
         exchangeurl = "http://%s:%s/api/exchanges/%s/%s" % (options["host"], options["port"], options["vhost"],exchange)
         self.log.info(exchangeurl)
         data = self.send_request(DC,exchangeurl,options)
-        print(data)
         if data is None:
             return
         
@@ -144,9 +139,6 @@ class RabbitMQAlert:
             
             exchange_conditions = options["exchangeconditions"][exchange]
             publish_in = data.get("message_stats",{}).get("publish_in_details")
-            self.log.info("publish in")
-            self.log.info(publish_in)
-            self.log.info("publish in")
             if publish_in is not None:
                 messages_rate_in = data.get("message_stats",{}).get("publish_in_details").get("rate")
                 message_in=exchange_conditions.get("message_rate_in") 
@@ -155,9 +147,6 @@ class RabbitMQAlert:
   
                 
             publish_out = data.get("message_stats",{}).get("publish_out_details")
-            self.log.info("publish out")
-            self.log.info(publish_out)
-            self.log.info("publish out")
             if publish_out is not None:
                 messages_rate_out = data.get("message_stats",{}).get("publish_out_details").get("rate")
                 message_out=exchange_conditions.get("message_rate_out")
@@ -231,7 +220,6 @@ class RabbitMQAlert:
             return
 
         consumers_connected = len(data)
-        print("check consumers_connected")
         consumers_connected_min = options["default_conditions"].get("consumers_connected")
 
         if consumers_connected is not None and consumers_connected < consumers_connected_min:
@@ -279,12 +267,7 @@ class RabbitMQAlert:
 
     def send_request(self, DC, url, options):
         queue = options["queue"]
-        print("Printing options in send request")
-        print(options)
-        print("Printing options in send request")
         exchange = options["exchanges"]
-        print("In send Request function_________________________")
-        print(exchange)
         password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
         password_mgr.add_password(None, url, options["username"], options["password"])
         handler = urllib2.HTTPBasicAuthHandler(password_mgr)
@@ -337,9 +320,7 @@ class RabbitMQAlert:
         exchange = options["exchanges"]
         #exchange_conditions = options["exchangeconditions"][exchange]
         spark_room_id = queue_conditions.get("spark-room-id")
-        print(spark_room_id)
         spark_bearer_id = queue_conditions.get("spark-bearer-id")
-        print(spark_bearer_id)
         if spark_room_id is not None and spark_bearer_id is not None:
             spark_room_id = queue_conditions.get("spark-room-id")
             spark_bearer_id = queue_conditions.get("spark-bearer-id")
@@ -347,9 +328,7 @@ class RabbitMQAlert:
             print(spark_bearer_id)
         else :
             spark_room_id = options["spark-room-id"]
-            print(spark_room_id)
             spark_bearer_id = options["spark-bearer-id"]    
-            print(spark_bearer_id)
         
         text_tag = " [RabbitMQ_Server_Location: %s] [Monitor_Location: %s]" % (to_monitor_host,os.environ['LOCATION'])
         text_spark = ""
@@ -376,12 +355,6 @@ class RabbitMQAlert:
         data = res.read()
         
 def monitorrabbit(host, port,DC,reports=False):
-
-    print('DCDCDCDCDCDCDCDCDCDCDCDC is')
-    print(DC) 
-    print("HOSTHOSTHOSTHOST is")
-    print(host)
-  
     log = logger.Logger()
     rabbitmq_alert = RabbitMQAlert(log)
 
@@ -418,12 +391,9 @@ def monitorrabbit(host, port,DC,reports=False):
     ####################
     # Queues
     ####################
-    #while True:
     for queue in options["queues"]:
         options["queue"] = queue
         queue_conditions = options["conditions"][queue]
-        #log.info("Following are queue_conditions:")
-        #log.info(queue_conditions)
 
         if "ready_queue_size" in queue_conditions \
                 or "unack_queue_size" in queue_conditions \
@@ -454,12 +424,11 @@ def monitorrabbit(host, port,DC,reports=False):
         options["queue"] = queue
         options["exchanges"] = exchange
         exchange_conditions = options["exchangeconditions"][exchange]
-        #log.info("Following are exchange_conditions:")
-        #log.info(exchange_conditions)
-        
+	log.info("Following are exchange conditions:")
+        log.info(exchange_conditions)
         if "message_rate_in" in exchange_conditions \
                 or "message_rate_out" in exchange_conditions \
-                or "bindings" in exchange_conditions :
+                or "bindings_exchange" in exchange_conditions :
             rabbitmq_alert.get_data_for_exchanges(options, host, port, DC)
 	    rabbitmq_alert.check_message_rates_for_exchanges(options, host, port, DC)
 
@@ -501,8 +470,6 @@ def main():
     log = logger.Logger()
     log.info("Starting application...")
     location=os.environ['LOCATION']
-    #log.info("Location recieved from controller!!")
-    #print(location)
     opt_resolver = optionsresolver.OptionsResolver(log)
     options = opt_resolver.setup_options_RTP()
     
